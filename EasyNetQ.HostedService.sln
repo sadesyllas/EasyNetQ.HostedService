@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyNetQ.HostedService", "src\EasyNetQ.HostedService\EasyNetQ.HostedService.csproj", "{BDDC417C-1EAB-44D9-B2E9-6FE6F601B949}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyNetQ.HostedService.TestApp", "tests\EasyNetQ.HostedService.TestApp\EasyNetQ.HostedService.TestApp.csproj", "{20DA595B-5F46-44E4-A24A-6841EB010D18}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,17 @@ Global
 		{BDDC417C-1EAB-44D9-B2E9-6FE6F601B949}.Release|x64.Build.0 = Release|Any CPU
 		{BDDC417C-1EAB-44D9-B2E9-6FE6F601B949}.Release|x86.ActiveCfg = Release|Any CPU
 		{BDDC417C-1EAB-44D9-B2E9-6FE6F601B949}.Release|x86.Build.0 = Release|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Debug|x64.Build.0 = Debug|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Debug|x86.Build.0 = Debug|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Release|x64.ActiveCfg = Release|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Release|x64.Build.0 = Release|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Release|x86.ActiveCfg = Release|Any CPU
+		{20DA595B-5F46-44E4-A24A-6841EB010D18}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
