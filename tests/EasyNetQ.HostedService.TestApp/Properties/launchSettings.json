@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "EasyNetQ.HostedService.TestApp": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
