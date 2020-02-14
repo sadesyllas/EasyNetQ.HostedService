@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EasyNetQ.HostedService.Message.Abstractions</name>
+    </assembly>
+    <members>
+        <member name="T:EasyNetQ.HostedService.Message.Abstractions.ConsumerHandler">
+            <summary>
+            A helper class for manipulating consumer handlers written by the library's client.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Message.Abstractions.ConsumerHandler.Wrap``1(System.Func{EasyNetQ.IMessage{``0},EasyNetQ.MessageReceivedInfo,System.Threading.CancellationToken,System.Threading.Tasks.Task})">
+             <summary>
+             Wraps a consumer handler which accepts an <see cref="T:EasyNetQ.IMessage`1"/> within a handler that accepts an
+             <see cref="T:EasyNetQ.IMessage"/>.
+            
+             This is done in order to use a common key/value data structure to hold the handler per consumer message
+             type.
+             </summary>
+             <param name="handler"/>
+             <typeparam name="TMessage"/>
+             <returns>
+             The wrapped handler to register as a consumer handler for a specific message type.
+             </returns>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Message.Abstractions.IMessageHandler`1">
+            <summary>
+            A message handler which knows how to handle messages of type <c>TMessage</c>.
+            </summary>
+            <typeparam name="TMessage"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Message.Abstractions.IMessageHandler`1.HandleMessage(EasyNetQ.IMessage{`0},EasyNetQ.MessageReceivedInfo,System.Threading.CancellationToken)">
+            <summary>
+            The message handling function that an <see cref="T:EasyNetQ.HostedService.Message.Abstractions.IMessageHandler`1"/> uses to handle messages of
+            type <see cref="T:EasyNetQ.IMessage`1"/>.
+            </summary>
+            <param name="m"/>
+            <param name="i"/>
+            <param name="t"/>
+            <returns/>
+        </member>
+    </members>
+</doc>

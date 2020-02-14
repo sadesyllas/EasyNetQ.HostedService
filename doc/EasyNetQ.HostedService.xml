@@ -1,0 +1,810 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EasyNetQ.HostedService</name>
+    </assembly>
+    <members>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IAckException">
+            <summary>
+            When thrown from a consumer's handler, an ACK will be sent for the message to the RabbitMQ server.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IBusProxy">
+            <summary>
+            A wrapper around an <see cref="T:EasyNetQ.IAdvancedBus"/> to bind it to an <see cref="P:EasyNetQ.HostedService.Abstractions.IBusProxy.Id"/>, thus giving it a
+            name.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IBusProxy.Id">
+            <summary>
+            The <c>Id</c> of the configuration which names an instance of <see cref="T:EasyNetQ.IAdvancedBus"/>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IBusProxy.Bus">
+            <summary>
+            An initialized <see cref="T:EasyNetQ.IAdvancedBus"/> instance.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.INackWithoutRequeueException">
+            <summary>
+            When thrown from a consumer's handler, a NACK will be sent for the message to the RabbitMQ server but the
+            message will not be requeued.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.INackWithRequeueException">
+            <summary>
+            When thrown from a consumer's handler, a NACK will be sent for the message to the RabbitMQ server and the
+            message will be requeued.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig">
+            <summary>
+            The RabbitMQ related configuration section which contains all the necessary details for connecting to the
+            RabbitMQ server.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Id">
+             <summary>
+             Provides a way to name a RabbitMQ configuration in order to provide connection reusability.
+            
+             When the same <see cref="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Id"/> is used for multiple consumers and/or producers, then all of them will use
+             the same <see cref="T:EasyNetQ.IAdvancedBus"/> and thus, the same connection to the RabbitMQ server.
+             </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.HostName">
+            <summary>
+            The RabbitMQ server hostname to connect to.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Port">
+            <summary>
+            The RabbitMQ server port to connect to.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.VirtualHost">
+            <summary>
+            The RabbitMQ virtual host to use when connecting to the RabbitMQ server.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.UserName">
+            <summary>
+            The username with which to connect to RabbitMQ.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Password">
+            <summary>
+            The password with which to connect to RabbitMQ.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.RequestedHeartbeatSeconds">
+            <summary>
+            The connection heartbeat in seconds.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.PersistentMessages">
+            <summary>
+            For producers, whether to use persistent messages when sending a message.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.PublisherConfirms">
+            <summary>
+            For producers, whether to use RabbitMQ's Publisher Confirms feature.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.MessageDeliveryTimeoutSeconds">
+            <summary>
+            For producers, it sets the timeout for publishing a message to the RabbitMQ server.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.PublisherLoopErrorBackOffMilliseconds">
+             <summary>
+             For the default producer implementation, the back off delay when an error occurs in the producer's loop.
+            
+             For details about the producer's queue, see <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+             </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Queue">
+             <summary>
+             The queue configuration to use for consumers.
+            
+             For details about consumer queue configuration, see <see cref="T:EasyNetQ.HostedService.Models.QueueConfig"/>.
+             </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.DeclaredQueue">
+            <summary>
+            The <see cref="T:EasyNetQ.Topology.IQueue"/> returned when a queue is declared by a consumer.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder">
+            <summary>
+            This class implements the builder pattern for subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+            <example>
+            <code>
+            // in the configuration callback of <see cref="M:Microsoft.Extensions.Hosting.IHostBuilder.ConfigureServices(System.Action{Microsoft.Extensions.Hosting.HostBuilderContext,Microsoft.Extensions.DependencyInjection.IServiceCollection})"/>
+            new RabbitMqServiceBuilder()
+                .WithRabbitMqConfig(rabbitMqConfig)
+                .Add&lt;MyRabbitMqService&gt;(services)
+            </code>
+            </example>
+        </member>
+        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithStronglyTypedMessages">
+             <summary>
+             Enable <see cref="T:EasyNetQ.HostedService.Internals.TypedMessageSerializationStrategy"/>.
+            
+             For consumers, it means that each incoming message is expected to have a valid <c>type</c> property,
+             pointing to an available type in a <c>FULL_TYPE_NAME, ASSEMBLY_NAME</c> format, in order to deserialize the
+             message into that type.
+            
+             For producers, it means that the message will be sent along with a valid <c>type</c> property in a
+             <c>FULL_TYPE_NAME, ASSEMBLY_NAME</c> format.
+             </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithCorrelationIds">
+            <summary>
+            When set, producers will send a correlation id along with each message.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue">
+            <summary>
+            If set, consumers will automatically declare the configured queue in <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithRabbitMqConfig(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig)">
+            <summary>
+            Sets <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/> for the registered <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.OnConnected(EasyNetQ.HostedService.OnConnectedCallback)">
+            <summary>
+            Adds a callback to run each time the <see cref="T:EasyNetQ.IAdvancedBus"/> is connected to the RabbitMQ server.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.OnConnectedOnce(EasyNetQ.HostedService.OnConnectedCallback)">
+             <summary>
+             Adds a callback to run each time the <see cref="T:EasyNetQ.IAdvancedBus"/> is connected to the RabbitMQ server.
+            
+             The callback is wrapped into a closure that makes sure that the callback is run only once.
+             </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.Add``1(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+             <summary>
+             Registers a subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> to be used with dependency injection.
+            
+             If it is a consumer with type <c>TConsumer</c>, it is registered both as
+             <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/> and <c>TConsumer</c>.
+            
+             If it is a producer with type <c>TProducer</c>, it is registered both as
+             <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/> and <c>TProducer</c>.
+             </summary>
+             <remarks>
+             It reuses an existing <see cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/> singleton, if one is found using the provided
+             <see cref="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Id"/>.
+            
+             If not, a new <see cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/> singleton is registered.
+             </remarks>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Internals.ConsumerHandler">
+            <summary>
+            A helper class for manipulating consumer handlers written by the library's client.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Internals.ConsumerHandler.Wrap``1(System.Func{EasyNetQ.IMessage{``0},EasyNetQ.MessageReceivedInfo,System.Threading.CancellationToken,System.Threading.Tasks.Task},EasyNetQ.IAdvancedBus,EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Threading.CancellationToken)">
+             <summary>
+             Wraps a consumer's handler in order to wrap the call to the initial handler in a try/catch clause.
+            
+             In case of an exception, a <see cref="T:EasyNetQ.HostedService.Internals.ConsumerException"/> is always thrown, which provides the current
+             <see cref="T:EasyNetQ.IAdvancedBus"/> and <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/> to the <see cref="T:EasyNetQ.HostedService.Internals.ConsumerErrorStrategy"/>.
+             </summary>
+             <param name="handler"/>
+             <param name="rmqBus"/>
+             <param name="rabbitMqConfig"/>
+             <param name="cancellationToken"/>
+             <typeparam name="TMessage"/>
+             <returns/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Internals.TypedMessageSerializationStrategy">
+             <summary>
+             An override for the default EasyNetQ implementation of <see cref="T:EasyNetQ.IMessageSerializationStrategy"/>.
+            
+             It uses a <see cref="T:EasyNetQ.ITypeNameSerializer"/> to deserialize the message's type from the RabbitMQ message's
+             <c>type</c> property.
+             </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Internals.UnhandledMessageTypeException">
+            <summary>
+            Thrown when a consumer's <see cref="T:EasyNetQ.IMessage`1"/> default handler for <see cref="T:System.Object"/> is run, since
+            that means that no other consumer handler matched the message type.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Internals.UntypedMessageSerializationStrategy">
+             <summary>
+             An override for the default EasyNetQ implementation of <see cref="T:EasyNetQ.IMessageSerializationStrategy"/>.
+            
+             It omits checking for the RabbitMQ message's <c>type</c> property, thus handling all messages as having a type
+             of <see cref="T:System.String"/>.
+             </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.MessageHandlers.Impl.MessageHandlersImpl">
+            <summary>
+            <inheritdoc cref="T:EasyNetQ.HostedService.Message.Abstractions.IMessageHandler`1"/>
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.MessageHandlers.Impl.MessageHandlersImpl.EasyNetQ#HostedService#Message#Abstractions#IMessageHandler{System#Object}#HandleMessage(EasyNetQ.IMessage{System.Object},EasyNetQ.MessageReceivedInfo,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="message"/>
+            <param name="i"/>
+            <param name="t"/>
+            <returns/>
+            <exception cref="T:EasyNetQ.HostedService.Internals.UnhandledMessageTypeException"/>
+            <remarks>
+            This message handler implementation is meant to be used a fallback consumer message handler and that is why
+            it is implemented for type <see cref="T:System.Object"/>.
+            </remarks>
+        </member>
+        <member name="T:EasyNetQ.HostedService.MessageHandlers.MessageHandlersProxy">
+            <summary>
+            A proxy class to provide a window into the different implementations of <see cref="T:EasyNetQ.HostedService.Message.Abstractions.IMessageHandler`1"/>
+            implemented by <see cref="F:EasyNetQ.HostedService.MessageHandlers.MessageHandlersProxy.MessageHandlersImpl"/>.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Models.AckException">
+            <summary>
+            <inheritdoc cref="T:EasyNetQ.HostedService.Abstractions.IAckException"/>
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.AckException.#ctor(System.String)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="message"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.AckException.#ctor(System.String,System.Exception)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="message"/>
+            <param name="innerException"/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Models.BusProxy">
+            <summary>
+            <inheritdoc cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/>
+            </summary>
+            <remarks>
+            This is the default <see cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/> implementation and it offers lazy instantiation of the
+            <see cref="T:EasyNetQ.IAdvancedBus"/> property.
+            </remarks>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Models.NackWithoutRequeueException">
+            <summary>
+            <inheritdoc cref="T:EasyNetQ.HostedService.Abstractions.INackWithoutRequeueException"/>
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.NackWithoutRequeueException.#ctor(System.String)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="message"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.NackWithoutRequeueException.#ctor(System.String,System.Exception)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="message"/>
+            <param name="innerException"/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Models.NackWithRequeueException">
+            <summary>
+            <inheritdoc cref="T:EasyNetQ.HostedService.Abstractions.INackWithRequeueException"/>
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.NackWithRequeueException.#ctor(System.String)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="message"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.NackWithRequeueException.#ctor(System.String,System.Exception)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="message"/>
+            <param name="innerException"/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Models.PublishResult">
+            <summary>
+            The result of calling <see cref="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean)"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Models.PublishResult.Published">
+            <summary>
+            The message was published successfully.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Models.PublishResult.NotPublished">
+            <summary>
+            The message was not published successfully because an error occured.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Models.QueueConfig">
+            <summary>
+            Queue configuration which is relevant only for consumers.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.Name">
+            <summary>
+            The name of the queue from which to consume.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.Durable">
+            <summary>
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+            <c>durable</c>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.DeclareExclusive">
+            <summary>
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+            <c>exclusive</c>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.ConsumeExclusive">
+            <summary>
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be consumed as
+            <c>exclusive</c>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.AutoDelete">
+            <summary>
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+            <c>auto deleted</c>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.Priority">
+            <summary>
+            If set, the consumer of the queue will have its priority set to the provided value.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.PrefetchCount">
+            <summary>
+            If set, the channel through which the queue is being consumed will have the prefetch count set to the
+            provided value.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.QueueConfig.AsIQueue">
+            <summary>
+            A convenience accessor to get the current configuration as a <see cref="T:EasyNetQ.Topology.IQueue"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.QueueConfig.ToString">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <returns/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Models.RabbitMqConfig">
+            <summary>
+            <inheritdoc cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.Id">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.HostName">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.Port">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.VirtualHost">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.UserName">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.Password">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.RequestedHeartbeatSeconds">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.Queue">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.DeclaredQueue">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.PersistentMessages">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <remarks>
+            By default, it is set to <c>true</c>.
+            </remarks>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.PublisherConfirms">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.MessageDeliveryTimeoutSeconds">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.PublisherLoopErrorBackOffMilliseconds">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.Copy">
+            <summary>
+            Makes easy reusing a <see cref="T:EasyNetQ.HostedService.Models.RabbitMqConfig"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Models.RabbitMqConfig.Clone">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <returns/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.RabbitMqConsumer`1">
+             <summary>
+             The subclasses of <c>RabbitMqConsumer&lt;T&gt;</c> are hosted services that can be registered through
+             dependency injection.
+            
+             For a convenient way to inject such a consumer hosted service, see <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>.
+            
+             Using <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>, allows one to inject such a consumer as
+             <c>RabbitMqConsumer&lt;T&gt;</c>.
+             </summary>
+             <typeparam name="T">
+             The subclass of <c>RabbitMqConsumer&lt;T&gt;</c> that will be registered as a consumer through
+             dependency injection.
+             </typeparam>
+             <remarks>
+             Any required services can be injected through constructor parameters as with any other hosted service.
+             </remarks>
+             <example>
+             <code><![CDATA[
+             // An example of a consumer type.
+            
+             using System;
+             using System.Collections.Generic;
+             using System.Text.Json;
+             using System.Threading;
+             using System.Threading.Tasks;
+             using AMLRecordsIndexer.RabbitMQ.Messages;
+             using EasyNetQ;
+             using EasyNetQ.HostedService;
+             using EasyNetQ.HostedService.Message.Abstractions;
+             using Microsoft.Extensions.Hosting;
+             using JsonSerializer = System.Text.Json.JsonSerializer;
+            
+             namespace EasyNetQ.HostedService.TestApp
+             {
+                 public struct EchoMessage
+                 {
+                     public string Text { get; set; }
+                 }
+            
+                 public class MyInjectableRabbitMqConsumer : RabbitMqConsumer<MyInjectableRabbitMqConsumer>
+                 {
+                     // optional constructor with additional injected dependencies
+                     public void MyInjectableRabbitMqConsumer(IHostEnvironment env)
+                     {
+                         // do something with env
+                     }
+            
+                     protected override IDictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
+                         MessageHandlerMap =>
+                         new Dictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
+                         {
+                             {
+                                 typeof(string),
+                                 ConsumerHandler.Wrap<string>((message, info, arg3) =>
+                                 {
+                                     var msg = System.Text.Json.JsonSerializer.Deserialize<EchoMessage>(message.Body, new JsonSerializerOptions()
+                                     {
+                                         PropertyNameCaseInsensitive = true,
+                                     });
+            
+                                     Console.WriteLine($"Received simple message: {message.Body}");
+                                     Console.WriteLine($"Received simple deserialized message: {msg.Text}");
+            
+                                     return Task.CompletedTask;
+                                 })
+                             }
+                         };
+            
+                 }
+             }
+             ]]></code>
+             </example>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.InitializeConsumer(System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="cancellationToken"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.InitializeProducer(System.Threading.CancellationToken)">
+             <summary>
+             Expected to be overriden by producers.
+            
+             The default implementation for consumers throws <see cref="T:System.NotSupportedException"/>.
+             </summary>
+             <param name="cancellationToken"/>
+             <exception cref="T:System.NotSupportedException"/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.RabbitMqProducer`1">
+             <summary>
+             The subclasses of <c>RabbitMqProducer&lt;T&gt;</c> are hosted services that can be registered through
+             dependency injection.
+            
+             For a convenient way to inject such a producer hosted service, see <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>.
+            
+             Using <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>, allows one to inject such a producer as
+             <c>RabbitMqProducer&lt;T&gt;</c>.
+             </summary>
+             <typeparam name="T">
+             The subclass of <c>RabbitMqProducer&lt;T&gt;</c> that will be registered as a producer through
+             dependency injection.
+             </typeparam>
+             <remarks>
+             Any required services can be injected through constructor parameters as with any other hosted service.
+            
+             The default <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/> implementation uses a <see cref="T:System.Collections.Concurrent.ConcurrentQueue`1"/> of
+             <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1.Message"/> as the message queue and a separate <see cref="T:System.Threading.Tasks.Task"/> to dequeue
+             messages and send them to the RabbitMQ server.
+             </remarks>
+             /// <example>
+             <code><![CDATA[
+             // An example of a producer type.
+            
+             using Microsoft.Extensions.Hosting;
+            
+             namespace EasyNetQ.HostedService.TestApp
+             {
+                 public class MyInjectableRabbitMqProducer : RabbitMqProducer<MyInjectableRabbitMqProducer>
+                 {
+                     // optional constructor with additional injected dependencies
+                     public MyInjectableRabbitMqProducer(IHostEnvironment env)
+                     {
+                         // do something with env
+                     }
+                 }
+             }
+             ]]></code>
+             </example>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.InitializeProducer(System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="cancellationToken"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean)">
+            <summary>
+            Enqueues a message of type <c>TMessage</c> for publishing after turning it into a <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1.Message"/>.
+            </summary>
+            <param name="exchange"/>
+            <param name="routingKey"/>
+            <param name="payload"/>
+            <param name="mandatory"/>
+            <typeparam name="TMessage"/>
+            <returns>
+            It returns a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/> which can be awaited until the message is
+            actually sent to the RabbitMQ server.
+            </returns>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.PersistMessages">
+             <summary>
+             If overriden it can persist enqueued but not yet sent messages.
+            
+             It is meant as a way to write messages to disk in case the service needs to stop.
+             </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.LoadMessages">
+             <summary>
+             If overriden it can load and enqueue messages to be sent.
+            
+             It is meant as a way to load messages from disk when the service starts.
+             </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.RabbitMqProducer`1.Message">
+            <summary>
+            The message type that is actually enqueued in the <see cref="T:System.Collections.Concurrent.ConcurrentQueue`1"/>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.RabbitMqProducer`1.MessageHandlerMap">
+             <summary>
+             Expected to be overriden by consumers.
+            
+             The default implementation for producers returns <c>null</c>.
+             </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.InitializeConsumer(System.Threading.CancellationToken)">
+             <summary>
+             Expected to be overriden by consumers.
+            
+             The default implementation for producers throws <see cref="T:System.NotSupportedException"/>.
+             </summary>
+             <param name="cancellationToken"/>
+             <exception cref="T:System.NotSupportedException"/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.OnConnectedCallback">
+            <summary>
+            The callback type for callbacks that must run when a new connection is established to the RabbitMQ server.
+            </summary>
+            <param name="b"/>
+            <param name="c"/>
+            <param name="t"/>
+            <param name="logger"/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.RabbitMqService`1">
+             <summary>
+             A hosted service that accepts an EasyNetQ <see cref="T:EasyNetQ.IAdvancedBus"/> and uses it to either set up a consumer or
+             a producer, given the configuration with which it has been created.
+             </summary>
+             <typeparam name="T">
+             The subclass of <c>RabbitMqService&lt;T&gt;</c> that will be registered as either a consumer or a producer
+             through dependency injection.
+             </typeparam>
+             <remarks>
+             The purpose of this class is to gather the common concerns of handling an <see cref="T:EasyNetQ.IAdvancedBus"/> into a
+             central place.
+            
+             There are two provided, abstract derived classes, <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/> and
+             <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+            
+             The types that are to be registered with dependency injection, as consumers or producers, should derive one
+             of these classes and potentially override the base class's functionality, as required.
+            
+             Any required services can be injected through constructor parameters, in the derived class,
+             as with any other hosted service.
+            
+             For details and examples of the provided consumer and producer subclasses, please,
+             see <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/> and <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+             </remarks>
+        </member>
+        <member name="P:EasyNetQ.HostedService.RabbitMqService`1.MessageHandlerMap">
+             <summary>
+             This property must be implemented by consumer types so that the service knows how to handle each message
+             by type.
+            
+             If using typed messages (see <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithStronglyTypedMessages"/>), then a handler
+             should be provided for each expected message type.
+            
+             If not using typed messages, then only a handler for the <see cref="T:System.String"/> should be registered.
+            
+             In any case, a handler for the <see cref="T:System.Object"/> type is always registered, if not already registered,
+             as a fallback which throws an <see cref="T:EasyNetQ.HostedService.Internals.UnhandledMessageTypeException"/>.
+             </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.RabbitMqService`1.Bus">
+            <summary>
+            The initialized <see cref="T:EasyNetQ.IAdvancedBus"/> that is exposed to subclasses of
+            <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.RabbitMqService`1.RabbitMqConfig">
+            <summary>
+            The populated <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/> that is exposed to subclasses of
+            <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.RabbitMqService`1.Logger">
+            <summary>
+            The initialized <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> that is exposed to subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.Create``1(System.Boolean,EasyNetQ.HostedService.Abstractions.IBusProxy,EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Collections.Generic.List{EasyNetQ.HostedService.OnConnectedCallback},System.IServiceProvider)">
+             <summary>
+             This static method is used by <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/> to construct a singleton hosted service
+             for a consumer of a producer.
+            
+             Its purpose is to instantiate the <c>TDerived</c>, passing in the <see cref="T:System.IServiceProvider"/> argument.
+            
+             The services that can be injected this way are the ones that have been registered up to the call site of
+             <see cref="M:EasyNetQ.HostedService.RabbitMqService`1.Create``1(System.Boolean,EasyNetQ.HostedService.Abstractions.IBusProxy,EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Collections.Generic.List{EasyNetQ.HostedService.OnConnectedCallback},System.IServiceProvider)"/>.
+             </summary>
+             <param name="isConsumer"/>
+             <param name="busProxy"/>
+             <param name="rmqConfig"/>
+             <param name="onConnected"/>
+             <param name="serviceProvider"/>
+             <typeparam name="TDerived">
+             The type of the consumer or producer that is being instantiated. It must match type parameter <c>T</c> of
+             type <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+             </typeparam>
+             <returns>
+             An instantiated <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> which should be used to register a consumer or
+             producer as a singleton hosted service.
+             </returns>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.CreateLazyBus(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Boolean,System.Boolean,System.IServiceProvider)">
+             <summary>
+             This static method is used by <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/> to construct a singleton hosted service
+             for a consumer of a producer.
+            
+             Its purpose is to be used with <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/> so as to allow reuse of
+             <see cref="T:EasyNetQ.IAdvancedBus"/> singletons
+            
+             This is done in order to enable the use of the same or different connections to the RabbitMQ server, on
+             demand.
+            
+             For more information about how <see cref="T:EasyNetQ.IAdvancedBus"/> instances can be reused, see
+             <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>.
+             </summary>
+             <param name="rmqConfig"/>
+             <param name="useStronglyTypedMessages"/>
+             <param name="useCorrelationIds"/>
+             <param name="serviceProvider"/>
+             <returns/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.StartAsync(System.Threading.CancellationToken)">
+             <summary>
+             Starts the hosted service and initializes the consumer or producer by either setting up the consumption of
+             messages or by starting the producer's message queueing functionality.
+            
+             For details on the default implementations of consumers and producers, see <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/>
+             and <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+             </summary>
+             <param name="cancellationToken"/>
+             <returns/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.StopAsync(System.Threading.CancellationToken)">
+            <summary>
+            Stops the hosted service by first disposing of any <c>IDisposable</c> instances that are created during
+            service startup.
+            </summary>
+            <param name="cancellationToken"/>
+            <returns/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.InitializeConsumer(System.Threading.CancellationToken)">
+             <summary>
+             This abstract function must be implemented by a subclass in order to initialize a consumer.
+            
+             This is not called for producers and it's declared as abstract only to enforce its implementation by
+             consumers.
+             </summary>
+             <param name="cancellationToken"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.InitializeProducer(System.Threading.CancellationToken)">
+             <summary>
+             This abstract function must be implemented by a subclass in order to initialize a producer.
+            
+             This is not called for consumers and it's declared as abstract only to enforce its implementation by
+             producers.
+             </summary>
+             <param name="cancellationToken"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.AddDisposable(System.IDisposable)">
+            <summary>
+            Adds a disposable into a common list of disposables in order to dispose of it on service termination.
+            </summary>
+            <param name="disposable"/>
+        </member>
+    </members>
+</doc>
