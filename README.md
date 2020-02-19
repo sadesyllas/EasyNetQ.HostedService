@@ -203,3 +203,4 @@ directory, the configuration `Doxyfile` is automatically used and the HTML
 documentation for both `EasyNetQ.HostedService` and
 `EasyNetQ.HostedService.Message.Abstractions` will become available in
 directory `doc/html`.
+
