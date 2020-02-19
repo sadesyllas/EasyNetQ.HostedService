@@ -613,6 +613,7 @@
             <param name="payload"/>
             <param name="mandatory"/>
             <typeparam name="TMessage"/>
+            <exception cref="T:System.ArgumentException"></exception>
             <returns>
             It returns a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/> which can be awaited until the message is
             actually sent to the RabbitMQ server.

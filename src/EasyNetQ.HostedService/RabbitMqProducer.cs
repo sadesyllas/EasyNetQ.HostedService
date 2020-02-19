@@ -10,6 +10,7 @@ using EasyNetQ.HostedService.Models;
 using EasyNetQ.Topology;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using RabbitMQ.Client.Exceptions;
 
 namespace EasyNetQ.HostedService
 {
@@ -55,9 +56,7 @@ namespace EasyNetQ.HostedService
     public abstract class RabbitMqProducer<T> : RabbitMqService<T>
     {
         private readonly ConcurrentQueue<Message> _messages = new ConcurrentQueue<Message>();
-
         private readonly SemaphoreSlim _messageSemaphore = new SemaphoreSlim(0);
-
         private CancellationToken _cancellationToken;
 
         /// <summary>
@@ -83,6 +82,7 @@ namespace EasyNetQ.HostedService
         /// <param name="payload"/>
         /// <param name="mandatory"/>
         /// <typeparam name="TMessage"/>
+        /// <exception cref="ArgumentException"></exception>
         /// <returns>
         /// It returns a <see cref="TaskCompletionSource{PublishResult}"/> which can be awaited until the message is
         /// actually sent to the RabbitMQ server.
@@ -96,6 +96,21 @@ namespace EasyNetQ.HostedService
             if (_cancellationToken.IsCancellationRequested)
             {
                 return Task.FromResult(PublishResult.NotPublished);
+            }
+
+            if (exchange == null)
+            {
+                throw new ArgumentException("The exchange must not be null.");
+            }
+
+            if (routingKey == null)
+            {
+                throw new ArgumentException("The routing key must not be null.");
+            }
+
+            if (payload == null)
+            {
+                throw new ArgumentException("The payload must not be null.");
             }
 
             var payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
@@ -146,6 +161,8 @@ namespace EasyNetQ.HostedService
             {
                 while (true)
                 {
+                    Message message = null!;
+
                     try
                     {
                         if (cancellationToken.IsCancellationRequested)
@@ -160,7 +177,7 @@ namespace EasyNetQ.HostedService
 
                         _messageSemaphore.Wait(cancellationToken);
 
-                        if (_messages.TryPeek(out var message))
+                        if (_messages.TryPeek(out message))
                         {
                             var exchange = new Exchange(message.Exchange);
 
@@ -171,8 +188,9 @@ namespace EasyNetQ.HostedService
 
 #if LOG_DEBUG_RABBITMQ_PRODUCER_PUBLISHED_MESSAGES
                             Logger?.LogDebug(
-                                $"Publishing message to exchange {message.Exchange} with " +
-                                $"routing key {message.RoutingKey} and payload {Encoding.UTF8.GetString(message.Payload)}.");
+                                $"Publishing message to exchange {message.Exchange} " +
+                                $"({GetMessageInformation(message)}) with routing key {message.RoutingKey} and payload " +
+                                $"{Encoding.UTF8.GetString(message.Payload)}.");
 #endif
 
                             Bus.Publish(
@@ -197,28 +215,52 @@ namespace EasyNetQ.HostedService
                     catch (TimeoutException)
                     {
                         Logger?.LogError(
-                            $"Timeout occured while trying to publish with configuration {RabbitMqConfig.Id}.");
+                            $"Timeout occured while trying to publish with configuration " +
+                            $"{RabbitMqConfig.Id} ({GetMessageInformation(message)})");
 
-                        Task
-                            .Delay(RabbitMqConfig.PublisherLoopErrorBackOffMilliseconds, cancellationToken)
-                            .Wait(cancellationToken);
+                        ProducerLoopWaitAndContinue(cancellationToken);
+                    }
+                    catch (AlreadyClosedException exception)
+                    {
+                        Logger?.LogError(
+                            $"AMQP error in producer loop: {exception.Message}\n{exception.StackTrace}\n" +
+                            $"({GetMessageInformation(message)})");
 
-                        _messageSemaphore.Release();
+                        // 404 - NOT FOUND means that the message cannot be processed at all at this point and it's
+                        // best to notify the library's client and discard it
+                        if (exception.ShutdownReason?.ReplyCode == 404)
+                        {
+                            ProducerLoopDiscardMessageAndContinue(message);
+                        }
                     }
                     catch (Exception exception)
                     {
                         Logger?.LogCritical(
-                            $"Critical error in producer loop: {exception.Message}\n" +
-                            $"{exception.StackTrace}");
+                            $"Critical error in producer loop: {exception.Message}\n{exception.StackTrace}\n" +
+                            $"({GetMessageInformation(message)})");
 
-                        Task
-                            .Delay(RabbitMqConfig.PublisherLoopErrorBackOffMilliseconds, cancellationToken)
-                            .Wait(cancellationToken);
-
-                        _messageSemaphore.Release();
+                        ProducerLoopWaitAndContinue(cancellationToken);
                     }
                 }
             }, null, TaskCreationOptions.LongRunning | TaskCreationOptions.PreferFairness);
+
+        private void ProducerLoopWaitAndContinue(CancellationToken cancellationToken)
+        {
+            Task.Delay(RabbitMqConfig.PublisherLoopErrorBackOffMilliseconds, cancellationToken).Wait(cancellationToken);
+
+            _messageSemaphore.Release();
+        }
+
+        private void ProducerLoopDiscardMessageAndContinue(Message? message)
+        {
+            message?.TaskCompletionSource.SetResult(PublishResult.NotPublished);
+
+            _messages.TryDequeue(out _);
+        }
+
+        private string GetMessageInformation(Message? message) =>
+            $"publisher confirms: {RabbitMqConfig.PublisherConfirms}, " +
+            $"{message?.ToString() ?? "- no message information available -"}";
 
         /// <summary>
         /// The message type that is actually enqueued in the <see cref="ConcurrentQueue{T}"/>.
@@ -235,6 +277,9 @@ namespace EasyNetQ.HostedService
             public TaskCompletionSource<PublishResult> TaskCompletionSource { get; set; } = null!;
 
             // ReSharper restore RedundantDefaultMemberInitializer
+
+            public override string ToString() =>
+                $"exchange: {Exchange}, routing key: {RoutingKey}, publisher confirms: mandatory: {Mandatory}";
         }
 
         #region Consumer Implementation
