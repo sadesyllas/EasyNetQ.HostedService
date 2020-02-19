@@ -195,3 +195,11 @@ To verify the integrity of the NuGet packages, checkout the git tag matching
 the NuGet package's version and verify that the SHA512 hash of the NuGet
 package matches the one in
 `https://github.com/sadesyllas/EasyNetQ.HostedService/blob/master/package-hashes.txt`.
+
+## Documentation
+
+If you have `doxygen` installed, by running `doxygen` in the solution's
+directory, the configuration `Doxyfile` is automatically used and the HTML
+documentation for both `EasyNetQ.HostedService` and
+`EasyNetQ.HostedService.Message.Abstractions` will become available in
+directory `doc/html`.
