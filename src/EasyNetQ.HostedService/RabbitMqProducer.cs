@@ -157,7 +157,7 @@ namespace EasyNetQ.HostedService
         }
 
         private void StartProducerLoop(CancellationToken cancellationToken) =>
-            Task.Factory.StartNew(state =>
+            new Thread(() =>
             {
                 while (true)
                 {
@@ -175,6 +175,7 @@ namespace EasyNetQ.HostedService
                             return;
                         }
 
+                        // SemaphoreSlim.Wait disposes of the CancellationTokenRegistration
                         _messageSemaphore.Wait(cancellationToken);
 
                         if (_messages.TryPeek(out message))
@@ -242,7 +243,7 @@ namespace EasyNetQ.HostedService
                         ProducerLoopWaitAndContinue(cancellationToken);
                     }
                 }
-            }, null, TaskCreationOptions.LongRunning | TaskCreationOptions.PreferFairness);
+            }).Start();
 
         private void ProducerLoopWaitAndContinue(CancellationToken cancellationToken)
         {
