@@ -183,7 +183,7 @@ namespace EasyNetQ.HostedService
             if (internalConsumersField != null)
             {
                 var internalConsumers = (ConcurrentSet<IInternalConsumer>)internalConsumersField.GetValue(consumer);
-                model = ((InternalConsumer)internalConsumers.FirstOrDefault()).Model;
+                model = ((InternalConsumer)internalConsumers.FirstOrDefault())?.Model;
             }
 
             var internalConsumerField =

@@ -17,7 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="EasyNetQ" Version="3.8.0-alpha0041"/>
+        <PackageReference Include="EasyNetQ" Version="3.8.0-alpha0042" />
     </ItemGroup>
 
 </Project>

@@ -18,8 +18,9 @@ namespace EasyNetQ.HostedService.Internals
             IConventions conventions,
             ITypeNameSerializer typeNameSerializer,
             IErrorMessageSerializer errorMessageSerializer,
+            ConnectionConfiguration connectionConfiguration,
             IServiceProvider serviceProvider) : base(
-            connection, serializer, conventions, typeNameSerializer, errorMessageSerializer)
+            connection, serializer, conventions, typeNameSerializer, errorMessageSerializer, connectionConfiguration)
         {
             _logger = serviceProvider.GetService<ILogger<ConsumerErrorStrategy>>();
         }
@@ -61,7 +62,7 @@ namespace EasyNetQ.HostedService.Internals
                 $"The {nameof(ConsumerErrorStrategy)} has already been disposed, while attempting to handle a " +
                 "consumer error, and the received message ({info}) will be requeued.";
 
-            _logger?.LogError(message, (object)context.Info);
+            _logger?.LogError(message, (object) context.Info);
 
             return AckStrategies.NackWithRequeue;
         }
