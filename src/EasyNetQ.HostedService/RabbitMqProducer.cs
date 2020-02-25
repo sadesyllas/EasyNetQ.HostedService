@@ -114,7 +114,10 @@ namespace EasyNetQ.HostedService
             }
 
             var payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
-            var taskCompletionSource = new TaskCompletionSource<PublishResult>();
+
+            var taskCompletionSource =
+                new TaskCompletionSource<PublishResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             var message = new Message
             {
                 Exchange = exchange,
@@ -137,6 +140,10 @@ namespace EasyNetQ.HostedService
         ///
         /// It is meant as a way to write messages to disk in case the service needs to stop.
         /// </summary>
+        /// <remarks>
+        /// One should make sure to use <c>TaskCompletionSource.SetResult(PublishResult.NotPublished)</c> in order to
+        /// unblock clients waiting for their messages of interest to be published.
+        /// </remarks>
         protected virtual void PersistMessages()
         {
             Logger?.LogTrace(
