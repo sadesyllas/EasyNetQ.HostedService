@@ -74,7 +74,7 @@ namespace EasyNetQ.HostedService.Abstractions
         ///
         /// For details about consumer queue configuration, see <see cref="QueueConfig"/>.
         /// </summary>
-        public QueueConfig Queue { get; set; }
+        public QueueConfig? Queue { get; set; }
 
         /// <summary>
         /// The <see cref="IQueue"/> returned when a queue is declared by a consumer.

@@ -50,7 +50,7 @@ namespace EasyNetQ.HostedService.Models
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public QueueConfig Queue { get; set; } = null!;
+        public QueueConfig? Queue { get; set; }
 
         /// <summary>
         /// <inheritdoc/>

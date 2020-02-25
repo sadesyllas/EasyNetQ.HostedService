@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.Internals;
@@ -13,6 +14,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
     /// <summary>
     /// This class implements the builder pattern for subclasses of <see cref="RabbitMqService{T}"/>.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
     /// <example>
     /// <code>
     /// // in the configuration callback of <see cref="IHostBuilder.ConfigureServices"/>
@@ -21,12 +23,13 @@ namespace EasyNetQ.HostedService.DependencyInjection
     ///     .Add&lt;MyRabbitMqService&gt;(services)
     /// </code>
     /// </example>
-    public sealed class RabbitMqServiceBuilder
+    public sealed class RabbitMqServiceBuilder<T> where T : RabbitMqService<T>
     {
-        private IRabbitMqConfig? _configRabbitMqConfig;
         private bool _configUseStronglyTypedMessages;
         private bool _configUseCorrelationIds;
         private bool _configAutoDeclareQueue;
+        private IRabbitMqConfig? _configRabbitMqConfig;
+        private IQueueResolver? _configQueueResolver;
         private readonly List<OnConnectedCallback> _configOnConnected = new List<OnConnectedCallback>();
 
         /// <summary>
@@ -39,7 +42,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
         /// For producers, it means that the message will be sent along with a valid <c>type</c> property in a
         /// <c>FULL_TYPE_NAME, ASSEMBLY_NAME</c> format.
         /// </summary>
-        public RabbitMqServiceBuilder WithStronglyTypedMessages
+        public RabbitMqServiceBuilder<T> WithStronglyTypedMessages
         {
             get
             {
@@ -52,7 +55,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
         /// <summary>
         /// When set, producers will send a correlation id along with each message.
         /// </summary>
-        public RabbitMqServiceBuilder WithCorrelationIds
+        public RabbitMqServiceBuilder<T> WithCorrelationIds
         {
             get
             {
@@ -65,7 +68,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
         /// <summary>
         /// If set, consumers will automatically declare the configured queue in <see cref="IRabbitMqConfig"/>.
         /// </summary>
-        public RabbitMqServiceBuilder AutoDeclareQueue
+        public RabbitMqServiceBuilder<T> AutoDeclareQueue
         {
             get
             {
@@ -76,9 +79,9 @@ namespace EasyNetQ.HostedService.DependencyInjection
         }
 
         /// <summary>
-        /// Sets <see cref="IRabbitMqConfig"/> for the registered <see cref="RabbitMqService{T}"/>.
+        /// Sets the <see cref="IRabbitMqConfig"/> for the registered <see cref="RabbitMqService{T}"/>.
         /// </summary>
-        public RabbitMqServiceBuilder WithRabbitMqConfig(IRabbitMqConfig rabbitMqConfig)
+        public RabbitMqServiceBuilder<T> WithRabbitMqConfig(IRabbitMqConfig rabbitMqConfig)
         {
             _configRabbitMqConfig = rabbitMqConfig ?? new RabbitMqConfig();
 
@@ -86,9 +89,19 @@ namespace EasyNetQ.HostedService.DependencyInjection
         }
 
         /// <summary>
+        /// Sets the <see cref="IQueueResolver"/> for the registered <see cref="RabbitMqService{T}"/>.
+        /// </summary>
+        public RabbitMqServiceBuilder<T> WithQueueResolver(IQueueResolver queueResolver)
+        {
+            _configQueueResolver = queueResolver;
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a callback to run each time the <see cref="IAdvancedBus"/> is connected to the RabbitMQ server.
         /// </summary>
-        public RabbitMqServiceBuilder OnConnected(OnConnectedCallback callback)
+        public RabbitMqServiceBuilder<T> OnConnected(OnConnectedCallback callback)
         {
             _configOnConnected.Add(callback);
 
@@ -100,7 +113,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
         ///
         /// The callback is wrapped into a closure that makes sure that the callback is run only once.
         /// </summary>
-        public RabbitMqServiceBuilder OnConnectedOnce(OnConnectedCallback callback)
+        public RabbitMqServiceBuilder<T> OnConnectedOnce(OnConnectedCallback callback)
         {
             OnConnectedCallback CallbackOnceFactory()
             {
@@ -148,7 +161,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
         ///
         /// If not, a new <see cref="IBusProxy"/> singleton is registered.
         /// </remarks>
-        public void Add<T>(IServiceCollection serviceCollection) where T : RabbitMqService<T>
+        public void Add(IServiceCollection serviceCollection)
         {
             var isConsumer = typeof(T).IsSubclassOf(typeof(RabbitMqConsumer<T>));
 
@@ -192,23 +205,57 @@ namespace EasyNetQ.HostedService.DependencyInjection
             }
             // ReSharper restore HeuristicUnreachableCode
 
-            if (isConsumer && _configAutoDeclareQueue)
+            if (isConsumer)
             {
-                OnConnected((bus, rabbitMqConfig, cancellationToken, logger) =>
+                if (_configRabbitMqConfig.Queue != null)
                 {
-                    logger?.LogDebug(
-                        $"Declaring queue \"{rabbitMqConfig.Queue.Name}\" " +
-                        $"(Id = {rabbitMqConfig.Id}, {rabbitMqConfig.Queue}).");
-
-                    var queue = bus.QueueDeclare(rabbitMqConfig.Queue.Name, config =>
+                    if (string.IsNullOrWhiteSpace(_configRabbitMqConfig.Queue.Name))
                     {
-                        config.AsDurable(rabbitMqConfig.Queue.Durable);
-                        config.AsExclusive(rabbitMqConfig.Queue.DeclareExclusive);
-                        config.AsAutoDelete(rabbitMqConfig.Queue.AutoDelete);
-                    }, cancellationToken);
+                        throw new Exception(
+                            $"The {nameof(IRabbitMqConfig.Queue.Name)} must not be null, blank or " +
+                            $"whitespace when a non null {nameof(IRabbitMqConfig.Queue)} has been configured.");
+                    }
+                }
+                else if (_configQueueResolver == null)
+                {
+                    throw new Exception(
+                        $"When {nameof(IRabbitMqConfig.Queue)} has been configured as null, then a non null " +
+                        $"{nameof(IQueueResolver)} must be provided.");
+                }
 
-                    rabbitMqConfig.DeclaredQueue = queue;
-                });
+                if (_configQueueResolver != null)
+                {
+                    serviceCollection.Add(
+                        new ServiceDescriptor(
+                            typeof(IQueueResolver<T>), _ => _configQueueResolver, ServiceLifetime.Singleton));
+                }
+
+                if (_configAutoDeclareQueue)
+                {
+                    OnConnected((bus, rabbitMqConfig, cancellationToken, logger) =>
+                    {
+                        Debug.Assert(
+                            rabbitMqConfig != null,
+                            $"Null {nameof(IRabbitMqConfig)} while trying to auto-declare the consumer's queue.");
+
+                        Debug.Assert(
+                            rabbitMqConfig.Queue != null,
+                            $"Null {nameof(IRabbitMqConfig.Queue)} while trying to auto-declare the consumer's queue.");
+
+                        logger?.LogDebug(
+                            $"Declaring queue \"{rabbitMqConfig.Queue.Name}\" (Id = {rabbitMqConfig.Id}, " +
+                            $"{rabbitMqConfig.Queue}).");
+
+                        var queue = bus.QueueDeclare(rabbitMqConfig.Queue.Name, config =>
+                        {
+                            config.AsDurable(rabbitMqConfig.Queue.Durable);
+                            config.AsExclusive(rabbitMqConfig.Queue.DeclareExclusive);
+                            config.AsAutoDelete(rabbitMqConfig.Queue.AutoDelete);
+                        }, cancellationToken);
+
+                        rabbitMqConfig.DeclaredQueue = queue;
+                    });
+                }
             }
 
             Func<IServiceProvider, T> ServiceFactoryFactory()

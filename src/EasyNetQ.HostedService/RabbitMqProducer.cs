@@ -18,9 +18,9 @@ namespace EasyNetQ.HostedService
     /// The subclasses of <c>RabbitMqProducer&lt;T&gt;</c> are hosted services that can be registered through
     /// dependency injection.
     ///
-    /// For a convenient way to inject such a producer hosted service, see <see cref="RabbitMqServiceBuilder"/>.
+    /// For a convenient way to inject such a producer hosted service, see <see cref="RabbitMqServiceBuilder{T}"/>.
     ///
-    /// Using <see cref="RabbitMqServiceBuilder"/>, allows one to inject such a producer as
+    /// Using <see cref="RabbitMqServiceBuilder{T}"/>, allows one to inject such a producer as
     /// <c>RabbitMqProducer&lt;T&gt;</c>.
     /// </summary>
     /// <typeparam name="T">

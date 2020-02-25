@@ -16,25 +16,25 @@ namespace EasyNetQ.HostedService.Models
         public string? Name { get; set; }
 
         /// <summary>
-        /// If set, along with <see cref="RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+        /// If set, along with <see cref="RabbitMqServiceBuilder{T}.AutoDeclareQueue"/>, the queue will be declared as
         /// <c>durable</c>.
         /// </summary>
         public bool Durable { get; set; }
 
         /// <summary>
-        /// If set, along with <see cref="RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+        /// If set, along with <see cref="RabbitMqServiceBuilder{T}.AutoDeclareQueue"/>, the queue will be declared as
         /// <c>exclusive</c>.
         /// </summary>
         public bool DeclareExclusive { get; set; }
 
         /// <summary>
-        /// If set, along with <see cref="RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be consumed as
+        /// If set, along with <see cref="RabbitMqServiceBuilder{T}.AutoDeclareQueue"/>, the queue will be consumed as
         /// <c>exclusive</c>.
         /// </summary>
         public bool ConsumeExclusive { get; set; }
 
         /// <summary>
-        /// If set, along with <see cref="RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+        /// If set, along with <see cref="RabbitMqServiceBuilder{T}.AutoDeclareQueue"/>, the queue will be declared as
         /// <c>auto deleted</c>.
         /// </summary>
         public bool AutoDelete { get; set; }

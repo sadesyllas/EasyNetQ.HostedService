@@ -37,6 +37,31 @@
             message will be requeued.
             </summary>
         </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IQueueResolver">
+            <summary>
+            An instance of <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> is responsible for providing a queue name for a consumer to
+            use.
+            </summary>
+            <remarks>
+            The <see cref="T:System.IServiceProvider"/> provided to <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> will be used to retrieve a
+            registered <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> instance if the <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> is a consumer
+            and the provided <see cref="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Queue"/> is <c>null</c>.
+            </remarks>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IQueueResolver.Queue">
+            <summary>
+            The queue name to be used by a consumer.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IQueueResolver`1">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <remarks>
+            This is meant to be used to register an <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> with dependency injection.
+            </remarks>
+            <typeparam name="T"></typeparam>
+        </member>
         <member name="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig">
             <summary>
             The RabbitMQ related configuration section which contains all the necessary details for connecting to the
@@ -115,10 +140,11 @@
             The <see cref="T:EasyNetQ.Topology.IQueue"/> returned when a queue is declared by a consumer.
             </summary>
         </member>
-        <member name="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder">
+        <member name="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1">
             <summary>
             This class implements the builder pattern for subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
             </summary>
+            <typeparam name="T"></typeparam>
             <example>
             <code>
             // in the configuration callback of <see cref="M:Microsoft.Extensions.Hosting.IHostBuilder.ConfigureServices(System.Action{Microsoft.Extensions.Hosting.HostBuilderContext,Microsoft.Extensions.DependencyInjection.IServiceCollection})"/>
@@ -128,7 +154,7 @@
             </code>
             </example>
         </member>
-        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithStronglyTypedMessages">
+        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.WithStronglyTypedMessages">
              <summary>
              Enable <see cref="T:EasyNetQ.HostedService.Internals.TypedMessageSerializationStrategy"/>.
             
@@ -140,34 +166,39 @@
              <c>FULL_TYPE_NAME, ASSEMBLY_NAME</c> format.
              </summary>
         </member>
-        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithCorrelationIds">
+        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.WithCorrelationIds">
             <summary>
             When set, producers will send a correlation id along with each message.
             </summary>
         </member>
-        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue">
+        <member name="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.AutoDeclareQueue">
             <summary>
             If set, consumers will automatically declare the configured queue in <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/>.
             </summary>
         </member>
-        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithRabbitMqConfig(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig)">
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.WithRabbitMqConfig(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig)">
             <summary>
-            Sets <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/> for the registered <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            Sets the <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/> for the registered <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
             </summary>
         </member>
-        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.OnConnected(EasyNetQ.HostedService.OnConnectedCallback)">
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.WithQueueResolver(EasyNetQ.HostedService.Abstractions.IQueueResolver)">
+            <summary>
+            Sets the <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> for the registered <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.OnConnected(EasyNetQ.HostedService.OnConnectedCallback)">
             <summary>
             Adds a callback to run each time the <see cref="T:EasyNetQ.IAdvancedBus"/> is connected to the RabbitMQ server.
             </summary>
         </member>
-        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.OnConnectedOnce(EasyNetQ.HostedService.OnConnectedCallback)">
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.OnConnectedOnce(EasyNetQ.HostedService.OnConnectedCallback)">
              <summary>
              Adds a callback to run each time the <see cref="T:EasyNetQ.IAdvancedBus"/> is connected to the RabbitMQ server.
             
              The callback is wrapped into a closure that makes sure that the callback is run only once.
              </summary>
         </member>
-        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.Add``1(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.Add(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
              <summary>
              Registers a subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> to be used with dependency injection.
             
@@ -340,25 +371,25 @@
         </member>
         <member name="P:EasyNetQ.HostedService.Models.QueueConfig.Durable">
             <summary>
-            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.AutoDeclareQueue"/>, the queue will be declared as
             <c>durable</c>.
             </summary>
         </member>
         <member name="P:EasyNetQ.HostedService.Models.QueueConfig.DeclareExclusive">
             <summary>
-            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.AutoDeclareQueue"/>, the queue will be declared as
             <c>exclusive</c>.
             </summary>
         </member>
         <member name="P:EasyNetQ.HostedService.Models.QueueConfig.ConsumeExclusive">
             <summary>
-            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be consumed as
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.AutoDeclareQueue"/>, the queue will be consumed as
             <c>exclusive</c>.
             </summary>
         </member>
         <member name="P:EasyNetQ.HostedService.Models.QueueConfig.AutoDelete">
             <summary>
-            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.AutoDeclareQueue"/>, the queue will be declared as
+            If set, along with <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.AutoDeclareQueue"/>, the queue will be declared as
             <c>auto deleted</c>.
             </summary>
         </member>
@@ -473,9 +504,9 @@
              The subclasses of <c>RabbitMqConsumer&lt;T&gt;</c> are hosted services that can be registered through
              dependency injection.
             
-             For a convenient way to inject such a consumer hosted service, see <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>.
+             For a convenient way to inject such a consumer hosted service, see <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/>.
             
-             Using <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>, allows one to inject such a consumer as
+             Using <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/>, allows one to inject such a consumer as
              <c>RabbitMqConsumer&lt;T&gt;</c>.
              </summary>
              <typeparam name="T">
@@ -562,9 +593,9 @@
              The subclasses of <c>RabbitMqProducer&lt;T&gt;</c> are hosted services that can be registered through
              dependency injection.
             
-             For a convenient way to inject such a producer hosted service, see <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>.
+             For a convenient way to inject such a producer hosted service, see <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/>.
             
-             Using <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>, allows one to inject such a producer as
+             Using <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/>, allows one to inject such a producer as
              <c>RabbitMqProducer&lt;T&gt;</c>.
              </summary>
              <typeparam name="T">
@@ -625,6 +656,10 @@
             
              It is meant as a way to write messages to disk in case the service needs to stop.
              </summary>
+             <remarks>
+             One should make sure to use <c>TaskCompletionSource.SetResult(PublishResult.NotPublished)</c> in order to
+             unblock clients waiting for their messages of interest to be published.
+             </remarks>
         </member>
         <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.LoadMessages">
              <summary>
@@ -694,8 +729,8 @@
              This property must be implemented by consumer types so that the service knows how to handle each message
              by type.
             
-             If using typed messages (see <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder.WithStronglyTypedMessages"/>), then a handler
-             should be provided for each expected message type.
+             If using typed messages (see <see cref="P:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.WithStronglyTypedMessages"/>), then a
+             handler should be provided for each expected message type.
             
              If not using typed messages, then only a handler for the <see cref="T:System.String"/> should be registered.
             
@@ -722,7 +757,7 @@
         </member>
         <member name="M:EasyNetQ.HostedService.RabbitMqService`1.Create``1(System.Boolean,EasyNetQ.HostedService.Abstractions.IBusProxy,EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Collections.Generic.List{EasyNetQ.HostedService.OnConnectedCallback},System.IServiceProvider)">
              <summary>
-             This static method is used by <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/> to construct a singleton hosted service
+             This static method is used by <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/> to construct a singleton hosted service
              for a consumer of a producer.
             
              Its purpose is to instantiate the <c>TDerived</c>, passing in the <see cref="T:System.IServiceProvider"/> argument.
@@ -746,17 +781,17 @@
         </member>
         <member name="M:EasyNetQ.HostedService.RabbitMqService`1.CreateLazyBus(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Boolean,System.Boolean,System.IServiceProvider)">
              <summary>
-             This static method is used by <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/> to construct a singleton hosted service
-             for a consumer of a producer.
+             This static method is used by <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/> to construct a singleton hosted
+             service for a consumer of a producer.
             
-             Its purpose is to be used with <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/> so as to allow reuse of
+             Its purpose is to be used with <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/> so as to allow reuse of
              <see cref="T:EasyNetQ.IAdvancedBus"/> singletons
             
              This is done in order to enable the use of the same or different connections to the RabbitMQ server, on
              demand.
             
              For more information about how <see cref="T:EasyNetQ.IAdvancedBus"/> instances can be reused, see
-             <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder"/>.
+             <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/>.
              </summary>
              <param name="rmqConfig"/>
              <param name="useStronglyTypedMessages"/>
@@ -782,6 +817,17 @@
             </summary>
             <param name="cancellationToken"/>
             <returns/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.Initialize">
+            <summary>
+            This virtual function is called right after the instantiation of the subclass of
+            <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+            <remarks>
+            Overriding this function allows the subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> to access fields that are
+            initialized after the construction of the instance, eg, <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            <see cref="P:EasyNetQ.HostedService.RabbitMqService`1.RabbitMqConfig"/>.
+            </remarks>
         </member>
         <member name="M:EasyNetQ.HostedService.RabbitMqService`1.InitializeConsumer(System.Threading.CancellationToken)">
              <summary>

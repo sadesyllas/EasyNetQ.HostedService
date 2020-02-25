@@ -5,11 +5,11 @@ using System.Reflection;
 using System.Threading;
 using EasyNetQ.Consumer;
 using EasyNetQ.Events;
+using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
 using EasyNetQ.HostedService.MessageHandlers;
 using EasyNetQ.Internals;
-using EasyNetQ.Topology;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
@@ -20,9 +20,9 @@ namespace EasyNetQ.HostedService
     /// The subclasses of <c>RabbitMqConsumer&lt;T&gt;</c> are hosted services that can be registered through
     /// dependency injection.
     ///
-    /// For a convenient way to inject such a consumer hosted service, see <see cref="RabbitMqServiceBuilder"/>.
+    /// For a convenient way to inject such a consumer hosted service, see <see cref="RabbitMqServiceBuilder{T}"/>.
     ///
-    /// Using <see cref="RabbitMqServiceBuilder"/>, allows one to inject such a consumer as
+    /// Using <see cref="RabbitMqServiceBuilder{T}"/>, allows one to inject such a consumer as
     /// <c>RabbitMqConsumer&lt;T&gt;</c>.
     /// </summary>
     /// <typeparam name="T">
@@ -90,6 +90,8 @@ namespace EasyNetQ.HostedService
     /// </example>
     public abstract class RabbitMqConsumer<T> : RabbitMqService<T>
     {
+        private IDisposable? _startConsumingDisposable;
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
@@ -116,19 +118,35 @@ namespace EasyNetQ.HostedService
 
             if (Bus.IsConnected)
             {
-                AddDisposable(
-                    StartConsuming(RabbitMqConfig.DeclaredQueue ?? RabbitMqConfig.Queue.AsIQueue, cancellationToken));
+                AddDisposable(StartConsuming(cancellationToken));
             }
 
             Bus.Connected += (sender, args) =>
             {
-                AddDisposable(
-                    StartConsuming(RabbitMqConfig.DeclaredQueue ?? RabbitMqConfig.Queue.AsIQueue, cancellationToken));
+                try
+                {
+                    _startConsumingDisposable?.Dispose();
+                }
+                catch (Exception exception)
+                {
+                    Logger?.LogError(
+                        $"Could not dispose of {nameof(_startConsumingDisposable)} in {nameof(RabbitMqConsumer<T>)}: " +
+                        $"{exception.Message}\n{exception.StackTrace}");
+                }
+
+                _startConsumingDisposable = StartConsuming(cancellationToken);
+
+                AddDisposable(_startConsumingDisposable);
             };
         }
 
-        private IDisposable StartConsuming(IQueue queue, CancellationToken cancellationToken) =>
-            Bus.Consume(queue, handlers =>
+        private IDisposable StartConsuming(CancellationToken cancellationToken)
+        {
+            var queue = RabbitMqConfig.Queue;
+
+            Debug.Assert(queue != null, $"{nameof(IRabbitMqConfig.Queue)} must not be null.");
+
+            return Bus.Consume(RabbitMqConfig.DeclaredQueue ?? queue.AsIQueue, handlers =>
             {
                 var addMethodInfo = handlers.GetType().GetMethod("Add");
 
@@ -158,18 +176,19 @@ namespace EasyNetQ.HostedService
                 }
             }, config =>
             {
-                if (RabbitMqConfig.Queue.Priority.HasValue)
+                if (queue.Priority.HasValue)
                 {
-                    config.WithPriority(RabbitMqConfig.Queue.Priority.Value);
+                    config.WithPriority(queue.Priority.Value);
                 }
 
-                config.WithExclusive(RabbitMqConfig.Queue.ConsumeExclusive);
+                config.WithExclusive(queue.ConsumeExclusive);
 
-                if (RabbitMqConfig.Queue.PrefetchCount.HasValue)
+                if (queue.PrefetchCount.HasValue)
                 {
-                    config.WithPrefetchCount(RabbitMqConfig.Queue.PrefetchCount.Value);
+                    config.WithPrefetchCount(queue.PrefetchCount.Value);
                 }
             });
+        }
 
         // TODO: THIS USE OF REFLECTION IS FRAGILE AND MUST BE RECONSIDERED
         private static IModel? ExtractModelFromInternalConsumer(IConsumer consumer, ILogger? logger)
@@ -182,8 +201,8 @@ namespace EasyNetQ.HostedService
 
             if (internalConsumersField != null)
             {
-                var internalConsumers = (ConcurrentSet<IInternalConsumer>)internalConsumersField.GetValue(consumer);
-                model = ((InternalConsumer)internalConsumers.FirstOrDefault())?.Model;
+                var internalConsumers = (ConcurrentSet<IInternalConsumer>) internalConsumersField.GetValue(consumer);
+                model = ((InternalConsumer) internalConsumers.FirstOrDefault())?.Model;
             }
 
             var internalConsumerField =
@@ -191,8 +210,8 @@ namespace EasyNetQ.HostedService
 
             if (internalConsumerField != null)
             {
-                var internalConsumer = (IInternalConsumer)internalConsumerField.GetValue(consumer);
-                model = ((InternalConsumer)internalConsumer)?.Model;
+                var internalConsumer = (IInternalConsumer) internalConsumerField.GetValue(consumer);
+                model = ((InternalConsumer) internalConsumer)?.Model;
             }
 
             if (model == null)

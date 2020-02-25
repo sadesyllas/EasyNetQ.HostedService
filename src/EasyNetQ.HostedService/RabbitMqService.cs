@@ -67,8 +67,8 @@ namespace EasyNetQ.HostedService
         /// This property must be implemented by consumer types so that the service knows how to handle each message
         /// by type.
         ///
-        /// If using typed messages (see <see cref="RabbitMqServiceBuilder.WithStronglyTypedMessages"/>), then a handler
-        /// should be provided for each expected message type.
+        /// If using typed messages (see <see cref="RabbitMqServiceBuilder{T}.WithStronglyTypedMessages"/>), then a
+        /// handler should be provided for each expected message type.
         ///
         /// If not using typed messages, then only a handler for the <see cref="string"/> should be registered.
         ///
@@ -102,7 +102,7 @@ namespace EasyNetQ.HostedService
         }
 
         /// <summary>
-        /// This static method is used by <see cref="RabbitMqServiceBuilder"/> to construct a singleton hosted service
+        /// This static method is used by <see cref="RabbitMqServiceBuilder{T}"/> to construct a singleton hosted service
         /// for a consumer of a producer.
         ///
         /// Its purpose is to instantiate the <c>TDerived</c>, passing in the <see cref="IServiceProvider"/> argument.
@@ -137,7 +137,21 @@ namespace EasyNetQ.HostedService
 
             if (isConsumer)
             {
+                if (rmqConfig.Queue == null)
+                {
+                    var queueResolver = (IQueueResolver) serviceProvider.GetService(typeof(IQueueResolver<TDerived>));
+
+                    if (queueResolver != null)
+                    {
+                        rmqConfig.Queue = queueResolver.Queue;
+                    }
+                }
+
                 Debug.Assert(rmqConfig.Queue != null, $"{nameof(IRabbitMqConfig.Queue)} must not be null.");
+
+                Debug.Assert(
+                    !string.IsNullOrWhiteSpace(rmqConfig.Queue.Name),
+                    $"{nameof(IRabbitMqConfig.Queue.Name)} must not be null, blank or whitespace.");
             }
 
             var logger = serviceProvider.GetService<ILogger<TDerived>>();
@@ -165,21 +179,23 @@ namespace EasyNetQ.HostedService
             service._logger = logger;
             service._isProperlyInitialized = true;
 
+            service.Initialize();
+
             return service;
         }
 
         /// <summary>
-        /// This static method is used by <see cref="RabbitMqServiceBuilder"/> to construct a singleton hosted service
-        /// for a consumer of a producer.
+        /// This static method is used by <see cref="RabbitMqServiceBuilder{T}"/> to construct a singleton hosted
+        /// service for a consumer of a producer.
         ///
-        /// Its purpose is to be used with <see cref="RabbitMqServiceBuilder"/> so as to allow reuse of
+        /// Its purpose is to be used with <see cref="RabbitMqServiceBuilder{T}"/> so as to allow reuse of
         /// <see cref="IAdvancedBus"/> singletons
         ///
         /// This is done in order to enable the use of the same or different connections to the RabbitMQ server, on
         /// demand.
         ///
         /// For more information about how <see cref="IAdvancedBus"/> instances can be reused, see
-        /// <see cref="RabbitMqServiceBuilder"/>.
+        /// <see cref="RabbitMqServiceBuilder{T}"/>.
         /// </summary>
         /// <param name="rmqConfig"/>
         /// <param name="useStronglyTypedMessages"/>
@@ -327,6 +343,19 @@ namespace EasyNetQ.HostedService
             }
 
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// This virtual function is called right after the instantiation of the subclass of
+        /// <see cref="RabbitMqService{T}"/>.
+        /// </summary>
+        /// <remarks>
+        /// Overriding this function allows the subclass of <see cref="RabbitMqService{T}"/> to access fields that are
+        /// initialized after the construction of the instance, eg, <see cref="RabbitMqService{T}"/>.
+        /// <see cref="RabbitMqConfig"/>.
+        /// </remarks>
+        protected virtual void Initialize()
+        {
         }
 
         /// <summary>
