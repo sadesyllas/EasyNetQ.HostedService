@@ -92,7 +92,7 @@ namespace EasyNetQ.HostedService
     /// }
     /// ]]></code>
     /// </example>
-    public abstract class RabbitMqConsumer<T> : RabbitMqService<T>
+    public abstract partial class RabbitMqConsumer<T> : RabbitMqService<T>
     {
         private IDisposable? _startConsumingDisposable;
         private IDisposable? _startConsumingSucceededEventSubscription;
@@ -291,9 +291,12 @@ namespace EasyNetQ.HostedService
 
             return model;
         }
+    }
 
-        #region Producer Implementation
+    #region Producer Implementation
 
+    public abstract partial class RabbitMqConsumer<T>
+    {
         /// <summary>
         /// Expected to be overriden by producers.
         ///
@@ -303,7 +306,7 @@ namespace EasyNetQ.HostedService
         /// <exception cref="NotSupportedException"/>
         protected sealed override void InitializeProducer(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
-
-        #endregion Producer Implementation
     }
+
+    #endregion Producer Implementation
 }

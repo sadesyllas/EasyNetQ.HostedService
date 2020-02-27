@@ -58,7 +58,7 @@ namespace EasyNetQ.HostedService
     /// }
     /// ]]></code>
     /// </example>
-    public abstract class RabbitMqProducer<T> : RabbitMqService<T>
+    public abstract partial class RabbitMqProducer<T> : RabbitMqService<T>
     {
         private readonly ConcurrentQueue<Message> _messages = new ConcurrentQueue<Message>();
         private readonly SemaphoreSlim _messageSemaphore = new SemaphoreSlim(0);
@@ -294,9 +294,12 @@ namespace EasyNetQ.HostedService
             public override string ToString() =>
                 $"exchange: {Exchange}, routing key: {RoutingKey}, publisher confirms: mandatory: {Mandatory}";
         }
+    }
 
-        #region Consumer Implementation
+    #region Consumer Implementation
 
+    public abstract partial class RabbitMqProducer<T>
+    {
         /// <summary>
         /// Expected to be overriden by consumers.
         ///
@@ -314,7 +317,7 @@ namespace EasyNetQ.HostedService
         /// <exception cref="NotSupportedException"/>
         protected sealed override void InitializeConsumer(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
-
-        #endregion Consumer Implementation
     }
+
+    #endregion Consumer Implementation
 }

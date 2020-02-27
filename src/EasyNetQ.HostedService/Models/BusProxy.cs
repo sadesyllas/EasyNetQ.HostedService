@@ -14,13 +14,13 @@ namespace EasyNetQ.HostedService.Models
     {
         private readonly Lazy<IAdvancedBus> _bus;
 
-        public string Id { get; }
-        public IAdvancedBus Bus => _bus.Value;
-
         public BusProxy(string id, Lazy<IAdvancedBus> bus)
         {
             Id = id;
             _bus = bus;
         }
+
+        public string Id { get; }
+        public IAdvancedBus Bus => _bus.Value;
     }
 }

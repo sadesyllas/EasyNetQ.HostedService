@@ -63,6 +63,12 @@ namespace EasyNetQ.HostedService
 
         // ReSharper restore RedundantDefaultMemberInitializer
 
+        static RabbitMqService()
+        {
+            // disable the default log provider of EasyNetQ since we have not (obvious) way to apply log filtering to it
+            LogProvider.IsDisabled = true;
+        }
+
         /// <summary>
         /// This property must be implemented by consumer types so that the service knows how to handle each message
         /// by type.
@@ -94,12 +100,6 @@ namespace EasyNetQ.HostedService
         /// The initialized <see cref="ILogger{T}"/> that is exposed to subclasses of <see cref="RabbitMqService{T}"/>.
         /// </summary>
         protected ILogger? Logger => _logger;
-
-        static RabbitMqService()
-        {
-            // disable the default log provider of EasyNetQ since we have not (obvious) way to apply log filtering to it
-            LogProvider.IsDisabled = true;
-        }
 
         /// <summary>
         /// This static method is used by <see cref="RabbitMqServiceBuilder{T}"/> to construct a singleton hosted service
