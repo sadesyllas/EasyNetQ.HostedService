@@ -81,9 +81,9 @@ namespace EasyNetQ.HostedService.Models
         public int PublisherLoopErrorBackOffMilliseconds { get; set; } = 100;
 
         /// <summary>
-        /// Makes easy reusing a <see cref="RabbitMqConfig"/>.
+        /// <inheritdoc/>
         /// </summary>
-        public RabbitMqConfig Copy => (RabbitMqConfig) Clone();
+        public IRabbitMqConfig Copy => (RabbitMqConfig) Clone();
 
         /// <summary>
         /// <inheritdoc/>

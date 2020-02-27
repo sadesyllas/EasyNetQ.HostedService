@@ -63,7 +63,7 @@ namespace EasyNetQ.HostedService
         /// <inheritdoc/>
         /// </summary>
         /// <param name="cancellationToken"/>
-        protected internal override void InitializeProducer(CancellationToken cancellationToken)
+        protected override void InitializeProducer(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
 
@@ -307,7 +307,7 @@ namespace EasyNetQ.HostedService
         /// </summary>
         /// <param name="cancellationToken"/>
         /// <exception cref="NotSupportedException"/>
-        protected internal sealed override void InitializeConsumer(CancellationToken cancellationToken) =>
+        protected sealed override void InitializeConsumer(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         #endregion Consumer Implementation

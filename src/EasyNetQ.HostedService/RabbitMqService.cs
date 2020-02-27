@@ -279,8 +279,6 @@ namespace EasyNetQ.HostedService
             _onConnected.ForEach(callback => Bus.Connected += (sender, args) =>
                 HandleCallbackError(callback)(Bus, _rmqConfig, cancellationToken, _logger));
 
-            // if this is a consumer, then start consuming
-
             if (_isConsumer)
             {
                 InitializeConsumer(cancellationToken);
@@ -355,7 +353,7 @@ namespace EasyNetQ.HostedService
         /// consumers.
         /// </summary>
         /// <param name="cancellationToken"/>
-        protected internal abstract void InitializeConsumer(CancellationToken cancellationToken);
+        protected abstract void InitializeConsumer(CancellationToken cancellationToken);
 
         /// <summary>
         /// This abstract function must be implemented by a subclass in order to initialize a producer.
@@ -364,7 +362,7 @@ namespace EasyNetQ.HostedService
         /// producers.
         /// </summary>
         /// <param name="cancellationToken"/>
-        protected internal abstract void InitializeProducer(CancellationToken cancellationToken);
+        protected abstract void InitializeProducer(CancellationToken cancellationToken);
 
         /// <summary>
         /// Adds a disposable into a common list of disposables in order to dispose of it on service termination.

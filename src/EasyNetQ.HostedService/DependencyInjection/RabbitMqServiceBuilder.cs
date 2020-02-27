@@ -82,7 +82,8 @@ namespace EasyNetQ.HostedService.DependencyInjection
         /// </summary>
         public RabbitMqServiceBuilder<T> WithRabbitMqConfig(IRabbitMqConfig rabbitMqConfig)
         {
-            _configRabbitMqConfig = rabbitMqConfig ?? new RabbitMqConfig();
+            // make sure that we are not using the same IRabbitMqConfig instance as the argument
+            _configRabbitMqConfig = rabbitMqConfig?.Copy ?? new RabbitMqConfig();
 
             return this;
         }

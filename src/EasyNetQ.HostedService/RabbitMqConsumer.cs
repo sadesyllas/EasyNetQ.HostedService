@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using EasyNetQ.Consumer;
 using EasyNetQ.Events;
 using EasyNetQ.HostedService.Abstractions;
@@ -91,30 +92,42 @@ namespace EasyNetQ.HostedService
     public abstract class RabbitMqConsumer<T> : RabbitMqService<T>
     {
         private IDisposable? _startConsumingDisposable;
+        private IDisposable? _startConsumingSucceededEventSubscription;
+        private IDisposable? _startConsumingFailedEventSubscription;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            DisposeStartConsumingSucceededEventSubscription();
+
+            DisposeStartConsumingFailedEventSubscription();
+
+            return base.StopAsync(cancellationToken);
+        }
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <param name="cancellationToken"/>
-        protected internal override void InitializeConsumer(CancellationToken cancellationToken)
+        protected override void InitializeConsumer(CancellationToken cancellationToken)
         {
-            var eventBus = Bus.Container.Resolve<IEventBus>();
+            SubscribeToStartConsumingSucceededEvent(@event =>
+                Logger?.LogDebug(
+                    $"Started consuming from {@event.Queue.Name} " +
+                    $"({JsonConvert.SerializeObject(@event.Queue.Arguments)})."));
 
-            AddDisposable(
-                eventBus.Subscribe<StartConsumingSucceededEvent>(@event =>
-                    Logger?.LogDebug(
-                        $"Started consuming from {@event.Queue.Name} " +
-                        $"({JsonConvert.SerializeObject(@event.Queue.Arguments)}).")));
+            SubscribeToStartConsumingFailedEvent(@event =>
+            {
+                var model = ExtractModelFromInternalConsumer(@event.Consumer, Logger);
 
-            AddDisposable(
-                eventBus.Subscribe<StartConsumingFailedEvent>(@event =>
-                {
-                    var model = ExtractModelFromInternalConsumer(@event.Consumer, Logger);
-
-                    Logger?.LogCritical(
-                        $"Failed to consume from {@event.Queue.Name} ({@event.Queue.Arguments}) with " +
-                        $"code {model?.CloseReason.ReplyCode} and reason {model?.CloseReason.ReplyText}.");
-                }));
+                Logger?.LogCritical(
+                    $"Failed to consume from {@event.Queue.Name} ({@event.Queue.Arguments}) with " +
+                    $"code {model?.CloseReason.ReplyCode} and reason {model?.CloseReason.ReplyText}.");
+            });
 
             if (Bus.IsConnected)
             {
@@ -139,6 +152,58 @@ namespace EasyNetQ.HostedService
                 AddDisposable(_startConsumingDisposable);
             };
         }
+
+        /// <summary>
+        /// Registers an event handler for the <see cref="StartConsumingSucceededEvent"/> event.
+        /// </summary>
+        /// <param name="eventHandler"></param>
+        /// <remarks>
+        /// This function first calls <see cref="DisposeStartConsumingSucceededEventSubscription"/> to dispose of the
+        /// existing <see cref="_startConsumingSucceededEventSubscription"/> instance, if any.
+        ///
+        /// If this consumer is using a shared <see cref="IAdvancedBus"/> instance, then the event handler will receive
+        /// events from other <see cref="StartConsumingSucceededEvent"/> subscriptions as well.
+        /// </remarks>
+        protected void SubscribeToStartConsumingSucceededEvent(Action<StartConsumingSucceededEvent> eventHandler)
+        {
+            DisposeStartConsumingSucceededEventSubscription();
+
+            var eventBus = Bus.Container.Resolve<IEventBus>();
+
+            _startConsumingSucceededEventSubscription = eventBus.Subscribe(eventHandler);
+        }
+
+        /// <summary>
+        /// Registers an event handler for the <see cref="StartConsumingFailedEvent"/> event.
+        /// </summary>
+        /// <param name="eventHandler"></param>
+        /// <remarks>
+        /// This function first calls <see cref="DisposeStartConsumingFailedEventSubscription"/> to dispose of the
+        /// existing <see cref="_startConsumingFailedEventSubscription"/> instance, if any.
+        ///
+        /// If this consumer is using a shared <see cref="IAdvancedBus"/> instance, then the event handler will receive
+        /// events from other <see cref="StartConsumingFailedEvent"/> subscriptions as well.
+        /// </remarks>
+        protected void SubscribeToStartConsumingFailedEvent(Action<StartConsumingFailedEvent> eventHandler)
+        {
+            DisposeStartConsumingFailedEventSubscription();
+
+            var eventBus = Bus.Container.Resolve<IEventBus>();
+
+            _startConsumingFailedEventSubscription = eventBus.Subscribe(eventHandler);
+        }
+
+        /// <summary>
+        /// Disposes of the <see cref="_startConsumingSucceededEventSubscription"/>.
+        /// </summary>
+        protected void DisposeStartConsumingSucceededEventSubscription() =>
+            _startConsumingSucceededEventSubscription?.Dispose();
+
+        /// <summary>
+        /// Disposes of the <see cref="_startConsumingFailedEventSubscription"/>.
+        /// </summary>
+        protected void DisposeStartConsumingFailedEventSubscription() =>
+            _startConsumingFailedEventSubscription?.Dispose();
 
         private IDisposable StartConsuming(CancellationToken cancellationToken)
         {
@@ -233,7 +298,7 @@ namespace EasyNetQ.HostedService
         /// </summary>
         /// <param name="cancellationToken"/>
         /// <exception cref="NotSupportedException"/>
-        protected internal sealed override void InitializeProducer(CancellationToken cancellationToken) =>
+        protected sealed override void InitializeProducer(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         #endregion Producer Implementation

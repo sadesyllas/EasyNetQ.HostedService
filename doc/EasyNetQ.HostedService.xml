@@ -115,6 +115,11 @@
             The <see cref="T:EasyNetQ.Topology.IQueue"/> returned when a queue is declared by a consumer.
             </summary>
         </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Copy">
+            <summary>
+            Makes easy reusing a <see cref="T:EasyNetQ.HostedService.Models.RabbitMqConfig"/>.
+            </summary>
+        </member>
         <member name="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1">
             <summary>
             This class implements the builder pattern for subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
@@ -460,7 +465,7 @@
         </member>
         <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.Copy">
             <summary>
-            Makes easy reusing a <see cref="T:EasyNetQ.HostedService.Models.RabbitMqConfig"/>.
+            <inheritdoc/>
             </summary>
         </member>
         <member name="M:EasyNetQ.HostedService.Models.RabbitMqConfig.Clone">
@@ -543,11 +548,54 @@
              ]]></code>
              </example>
         </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.StopAsync(System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc/>
+            </summary>
+            <param name="cancellationToken"></param>
+            <returns></returns>
+        </member>
         <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.InitializeConsumer(System.Threading.CancellationToken)">
             <summary>
             <inheritdoc/>
             </summary>
             <param name="cancellationToken"/>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.SubscribeToStartConsumingSucceededEvent(System.Action{EasyNetQ.Events.StartConsumingSucceededEvent})">
+             <summary>
+             Registers an event handler for the <see cref="T:EasyNetQ.Events.StartConsumingSucceededEvent"/> event.
+             </summary>
+             <param name="eventHandler"></param>
+             <remarks>
+             This function first calls <see cref="M:EasyNetQ.HostedService.RabbitMqConsumer`1.DisposeStartConsumingSucceededEventSubscription"/> to dispose of the
+             existing <see cref="F:EasyNetQ.HostedService.RabbitMqConsumer`1._startConsumingSucceededEventSubscription"/> instance, if any.
+            
+             If this consumer is using a shared <see cref="T:EasyNetQ.IAdvancedBus"/> instance, then the event handler will receive
+             events from other <see cref="T:EasyNetQ.Events.StartConsumingSucceededEvent"/> subscriptions as well.
+             </remarks>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.SubscribeToStartConsumingFailedEvent(System.Action{EasyNetQ.Events.StartConsumingFailedEvent})">
+             <summary>
+             Registers an event handler for the <see cref="T:EasyNetQ.Events.StartConsumingFailedEvent"/> event.
+             </summary>
+             <param name="eventHandler"></param>
+             <remarks>
+             This function first calls <see cref="M:EasyNetQ.HostedService.RabbitMqConsumer`1.DisposeStartConsumingFailedEventSubscription"/> to dispose of the
+             existing <see cref="F:EasyNetQ.HostedService.RabbitMqConsumer`1._startConsumingFailedEventSubscription"/> instance, if any.
+            
+             If this consumer is using a shared <see cref="T:EasyNetQ.IAdvancedBus"/> instance, then the event handler will receive
+             events from other <see cref="T:EasyNetQ.Events.StartConsumingFailedEvent"/> subscriptions as well.
+             </remarks>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.DisposeStartConsumingSucceededEventSubscription">
+            <summary>
+            Disposes of the <see cref="F:EasyNetQ.HostedService.RabbitMqConsumer`1._startConsumingSucceededEventSubscription"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.DisposeStartConsumingFailedEventSubscription">
+            <summary>
+            Disposes of the <see cref="F:EasyNetQ.HostedService.RabbitMqConsumer`1._startConsumingFailedEventSubscription"/>.
+            </summary>
         </member>
         <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.InitializeProducer(System.Threading.CancellationToken)">
              <summary>

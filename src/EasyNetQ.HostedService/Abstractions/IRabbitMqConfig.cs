@@ -80,5 +80,10 @@ namespace EasyNetQ.HostedService.Abstractions
         /// The <see cref="IQueue"/> returned when a queue is declared by a consumer.
         /// </summary>
         public IQueue? DeclaredQueue { get; set; }
+
+        /// <summary>
+        /// Makes easy reusing a <see cref="RabbitMqConfig"/>.
+        /// </summary>
+        public IRabbitMqConfig Copy { get; }
     }
 }
