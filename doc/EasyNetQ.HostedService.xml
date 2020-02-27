@@ -37,31 +37,6 @@
             message will be requeued.
             </summary>
         </member>
-        <member name="T:EasyNetQ.HostedService.Abstractions.IQueueResolver">
-            <summary>
-            An instance of <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> is responsible for providing a queue name for a consumer to
-            use.
-            </summary>
-            <remarks>
-            The <see cref="T:System.IServiceProvider"/> provided to <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> will be used to retrieve a
-            registered <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> instance if the <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> is a consumer
-            and the provided <see cref="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Queue"/> is <c>null</c>.
-            </remarks>
-        </member>
-        <member name="P:EasyNetQ.HostedService.Abstractions.IQueueResolver.Queue">
-            <summary>
-            The queue name to be used by a consumer.
-            </summary>
-        </member>
-        <member name="T:EasyNetQ.HostedService.Abstractions.IQueueResolver`1">
-            <summary>
-            <inheritdoc/>
-            </summary>
-            <remarks>
-            This is meant to be used to register an <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> with dependency injection.
-            </remarks>
-            <typeparam name="T"></typeparam>
-        </member>
         <member name="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig">
             <summary>
             The RabbitMQ related configuration section which contains all the necessary details for connecting to the
@@ -179,11 +154,6 @@
         <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.WithRabbitMqConfig(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig)">
             <summary>
             Sets the <see cref="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig"/> for the registered <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
-            </summary>
-        </member>
-        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.WithQueueResolver(EasyNetQ.HostedService.Abstractions.IQueueResolver)">
-            <summary>
-            Sets the <see cref="T:EasyNetQ.HostedService.Abstractions.IQueueResolver"/> for the registered <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
             </summary>
         </member>
         <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.OnConnected(EasyNetQ.HostedService.OnConnectedCallback)">

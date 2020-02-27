@@ -135,25 +135,6 @@ namespace EasyNetQ.HostedService
 
             Debug.Assert(rmqConfig != null, $"{nameof(IRabbitMqConfig)} must not be null.");
 
-            if (isConsumer)
-            {
-                if (rmqConfig.Queue == null)
-                {
-                    var queueResolver = (IQueueResolver) serviceProvider.GetService(typeof(IQueueResolver<TDerived>));
-
-                    if (queueResolver != null)
-                    {
-                        rmqConfig.Queue = queueResolver.Queue;
-                    }
-                }
-
-                Debug.Assert(rmqConfig.Queue != null, $"{nameof(IRabbitMqConfig.Queue)} must not be null.");
-
-                Debug.Assert(
-                    !string.IsNullOrWhiteSpace(rmqConfig.Queue.Name),
-                    $"{nameof(IRabbitMqConfig.Queue.Name)} must not be null, blank or whitespace.");
-            }
-
             var logger = serviceProvider.GetService<ILogger<TDerived>>();
 
             TDerived service;
@@ -180,6 +161,15 @@ namespace EasyNetQ.HostedService
             service._isProperlyInitialized = true;
 
             service.Initialize();
+
+            if (isConsumer)
+            {
+                Debug.Assert(service._rmqConfig.Queue != null, $"{nameof(IRabbitMqConfig.Queue)} must not be null.");
+
+                Debug.Assert(
+                    !string.IsNullOrWhiteSpace(service._rmqConfig.Queue.Name),
+                    $"{nameof(IRabbitMqConfig.Queue.Name)} must not be null, blank or whitespace.");
+            }
 
             return service;
         }

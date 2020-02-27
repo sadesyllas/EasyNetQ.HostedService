@@ -29,7 +29,6 @@ namespace EasyNetQ.HostedService.DependencyInjection
         private bool _configUseCorrelationIds;
         private bool _configAutoDeclareQueue;
         private IRabbitMqConfig? _configRabbitMqConfig;
-        private IQueueResolver? _configQueueResolver;
         private readonly List<OnConnectedCallback> _configOnConnected = new List<OnConnectedCallback>();
 
         /// <summary>
@@ -84,16 +83,6 @@ namespace EasyNetQ.HostedService.DependencyInjection
         public RabbitMqServiceBuilder<T> WithRabbitMqConfig(IRabbitMqConfig rabbitMqConfig)
         {
             _configRabbitMqConfig = rabbitMqConfig ?? new RabbitMqConfig();
-
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the <see cref="IQueueResolver"/> for the registered <see cref="RabbitMqService{T}"/>.
-        /// </summary>
-        public RabbitMqServiceBuilder<T> WithQueueResolver(IQueueResolver queueResolver)
-        {
-            _configQueueResolver = queueResolver;
 
             return this;
         }
@@ -205,57 +194,31 @@ namespace EasyNetQ.HostedService.DependencyInjection
             }
             // ReSharper restore HeuristicUnreachableCode
 
-            if (isConsumer)
+            if (isConsumer && _configAutoDeclareQueue)
             {
-                if (_configRabbitMqConfig.Queue != null)
+                OnConnected((bus, rabbitMqConfig, cancellationToken, logger) =>
                 {
-                    if (string.IsNullOrWhiteSpace(_configRabbitMqConfig.Queue.Name))
+                    Debug.Assert(
+                        rabbitMqConfig != null,
+                        $"Null {nameof(IRabbitMqConfig)} while trying to auto-declare the consumer's queue.");
+
+                    Debug.Assert(
+                        rabbitMqConfig.Queue != null,
+                        $"Null {nameof(IRabbitMqConfig.Queue)} while trying to auto-declare the consumer's queue.");
+
+                    logger?.LogDebug(
+                        $"Declaring queue \"{rabbitMqConfig.Queue.Name}\" (Id = {rabbitMqConfig.Id}, " +
+                        $"{rabbitMqConfig.Queue}).");
+
+                    var queue = bus.QueueDeclare(rabbitMqConfig.Queue.Name, config =>
                     {
-                        throw new Exception(
-                            $"The {nameof(IRabbitMqConfig.Queue.Name)} must not be null, blank or " +
-                            $"whitespace when a non null {nameof(IRabbitMqConfig.Queue)} has been configured.");
-                    }
-                }
-                else if (_configQueueResolver == null)
-                {
-                    throw new Exception(
-                        $"When {nameof(IRabbitMqConfig.Queue)} has been configured as null, then a non null " +
-                        $"{nameof(IQueueResolver)} must be provided.");
-                }
+                        config.AsDurable(rabbitMqConfig.Queue.Durable);
+                        config.AsExclusive(rabbitMqConfig.Queue.DeclareExclusive);
+                        config.AsAutoDelete(rabbitMqConfig.Queue.AutoDelete);
+                    }, cancellationToken);
 
-                if (_configQueueResolver != null)
-                {
-                    serviceCollection.Add(
-                        new ServiceDescriptor(
-                            typeof(IQueueResolver<T>), _ => _configQueueResolver, ServiceLifetime.Singleton));
-                }
-
-                if (_configAutoDeclareQueue)
-                {
-                    OnConnected((bus, rabbitMqConfig, cancellationToken, logger) =>
-                    {
-                        Debug.Assert(
-                            rabbitMqConfig != null,
-                            $"Null {nameof(IRabbitMqConfig)} while trying to auto-declare the consumer's queue.");
-
-                        Debug.Assert(
-                            rabbitMqConfig.Queue != null,
-                            $"Null {nameof(IRabbitMqConfig.Queue)} while trying to auto-declare the consumer's queue.");
-
-                        logger?.LogDebug(
-                            $"Declaring queue \"{rabbitMqConfig.Queue.Name}\" (Id = {rabbitMqConfig.Id}, " +
-                            $"{rabbitMqConfig.Queue}).");
-
-                        var queue = bus.QueueDeclare(rabbitMqConfig.Queue.Name, config =>
-                        {
-                            config.AsDurable(rabbitMqConfig.Queue.Durable);
-                            config.AsExclusive(rabbitMqConfig.Queue.DeclareExclusive);
-                            config.AsAutoDelete(rabbitMqConfig.Queue.AutoDelete);
-                        }, cancellationToken);
-
-                        rabbitMqConfig.DeclaredQueue = queue;
-                    });
-                }
+                    rabbitMqConfig.DeclaredQueue = queue;
+                });
             }
 
             Func<IServiceProvider, T> ServiceFactoryFactory()
