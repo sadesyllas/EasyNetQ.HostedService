@@ -64,6 +64,10 @@ namespace EasyNetQ.HostedService.TestApp
                 }
             };
 
+        protected override void Initialize()
+        {
+            // use initialized members like `Bus` and `RabbitMqConfig`
+        }
     }
 }
 ```
@@ -81,6 +85,11 @@ namespace EasyNetQ.HostedService.TestApp
         public MyInjectableRabbitMqProducer(IHostEnvironment env)
         {
             // do something with env
+        }
+
+        protected override void Initialize()
+        {
+            // use initialized members like `Bus` and `RabbitMqConfig`
         }
     }
 }

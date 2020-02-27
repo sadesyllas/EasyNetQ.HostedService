@@ -124,13 +124,15 @@
             <summary>
             This class implements the builder pattern for subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
             </summary>
-            <typeparam name="T"></typeparam>
+            <typeparam name="T">
+            The consumer or producer subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </typeparam>
             <example>
             <code>
             // in the configuration callback of <see cref="M:Microsoft.Extensions.Hosting.IHostBuilder.ConfigureServices(System.Action{Microsoft.Extensions.Hosting.HostBuilderContext,Microsoft.Extensions.DependencyInjection.IServiceCollection})"/>
-            new RabbitMqServiceBuilder()
+            new RabbitMqServiceBuilder&lt;MyRabbitMqService&gt;()
                 .WithRabbitMqConfig(rabbitMqConfig)
-                .Add&lt;MyRabbitMqService&gt;(services)
+                .Add(services)
             </code>
             </example>
         </member>
@@ -543,7 +545,10 @@
                              }
                          };
             
-                 }
+                     protected override void Initialize()
+                     {
+                         // use initialized members like `Bus` and `RabbitMqConfig`
+                     }
              }
              ]]></code>
              </example>
@@ -641,6 +646,11 @@
                      public MyInjectableRabbitMqProducer(IHostEnvironment env)
                      {
                          // do something with env
+                     }
+            
+                     protected override void Initialize()
+                     {
+                         // use initialized members like `Bus` and `RabbitMqConfig`
                      }
                  }
              }

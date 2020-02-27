@@ -85,7 +85,10 @@ namespace EasyNetQ.HostedService
     ///                 }
     ///             };
     ///
-    ///     }
+    ///         protected override void Initialize()
+    ///         {
+    ///             // use initialized members like `Bus` and `RabbitMqConfig`
+    ///         }
     /// }
     /// ]]></code>
     /// </example>

@@ -14,13 +14,15 @@ namespace EasyNetQ.HostedService.DependencyInjection
     /// <summary>
     /// This class implements the builder pattern for subclasses of <see cref="RabbitMqService{T}"/>.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">
+    /// The consumer or producer subclass of <see cref="RabbitMqService{T}"/>.
+    /// </typeparam>
     /// <example>
     /// <code>
     /// // in the configuration callback of <see cref="IHostBuilder.ConfigureServices"/>
-    /// new RabbitMqServiceBuilder()
+    /// new RabbitMqServiceBuilder&lt;MyRabbitMqService&gt;()
     ///     .WithRabbitMqConfig(rabbitMqConfig)
-    ///     .Add&lt;MyRabbitMqService&gt;(services)
+    ///     .Add(services)
     /// </code>
     /// </example>
     public sealed class RabbitMqServiceBuilder<T> where T : RabbitMqService<T>
