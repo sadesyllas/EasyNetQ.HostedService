@@ -23,15 +23,11 @@ namespace EasyNetQ.HostedService.TestApp
 ```c#
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
-using AMLRecordsIndexer.RabbitMQ.Messages;
-using EasyNetQ;
-using EasyNetQ.HostedService;
 using EasyNetQ.HostedService.Message.Abstractions;
 using Microsoft.Extensions.Hosting;
-using JsonSerializer = System.Text.Json.JsonSerializer;
+using Microsoft.Extensions.Logging;
+using static EasyNetQ.HostedService.Message.Abstractions.MessageHandlerHelper;
 
 namespace EasyNetQ.HostedService.TestApp
 {
@@ -43,21 +39,14 @@ namespace EasyNetQ.HostedService.TestApp
             // do something with env
         }
 
-        protected override IDictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
-            MessageHandlerMap =>
-            new Dictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
+        protected override IDictionary<Type, MessageHandler> MessageHandlerMap =>
+            new Dictionary<Type, MessageHandler>
             {
                 {
                     typeof(string),
-                    ConsumerHandler.Wrap<string>((message, info, arg3) =>
+                    MessageHandlerHelper.Wrap<string>((message, info, token) =>
                     {
-                        var msg = System.Text.Json.JsonSerializer.Deserialize<EchoMessage>(message.Body, new JsonSerializerOptions()
-                        {
-                            PropertyNameCaseInsensitive = true,
-                        });
-
-                        Console.WriteLine($"Received simple message: {message.Body}");
-                        Console.WriteLine($"Received simple deserialized message: {msg.Text}");
+                        Logger.LogDebug($"Received message: {message.Body}");
 
                         return Task.CompletedTask;
                     })
@@ -68,7 +57,6 @@ namespace EasyNetQ.HostedService.TestApp
         {
             // use initialized members like `Bus` and `RabbitMqConfig`
         }
-    }
 }
 ```
 

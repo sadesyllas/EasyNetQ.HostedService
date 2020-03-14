@@ -7,6 +7,7 @@ using EasyNetQ.Consumer;
 using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
+using EasyNetQ.HostedService.Message.Abstractions;
 using EasyNetQ.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -81,8 +82,7 @@ namespace EasyNetQ.HostedService
         /// In any case, a handler for the <see cref="object"/> type is always registered, if not already registered,
         /// as a fallback which throws an <see cref="UnhandledMessageTypeException"/>.
         /// </summary>
-        protected abstract IDictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
-            MessageHandlerMap { get; }
+        protected abstract IDictionary<Type, MessageHandler> MessageHandlerMap { get; }
 
         /// <summary>
         /// The initialized <see cref="IAdvancedBus"/> that is exposed to subclasses of

@@ -9,11 +9,13 @@ using EasyNetQ.Events;
 using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
+using EasyNetQ.HostedService.Internals.Extensions;
 using EasyNetQ.HostedService.MessageHandlers;
 using EasyNetQ.Internals;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
+using static EasyNetQ.HostedService.Internals.MessageHandlerHelper;
 
 namespace EasyNetQ.HostedService
 {
@@ -39,15 +41,11 @@ namespace EasyNetQ.HostedService
     ///
     /// using System;
     /// using System.Collections.Generic;
-    /// using System.Text.Json;
-    /// using System.Threading;
     /// using System.Threading.Tasks;
-    /// using AMLRecordsIndexer.RabbitMQ.Messages;
-    /// using EasyNetQ;
-    /// using EasyNetQ.HostedService;
     /// using EasyNetQ.HostedService.Message.Abstractions;
     /// using Microsoft.Extensions.Hosting;
-    /// using JsonSerializer = System.Text.Json.JsonSerializer;
+    /// using Microsoft.Extensions.Logging;
+    /// using static EasyNetQ.HostedService.Message.Abstractions.MessageHandlerHelper;
     ///
     /// namespace EasyNetQ.HostedService.TestApp
     /// {
@@ -64,21 +62,14 @@ namespace EasyNetQ.HostedService
     ///             // do something with env
     ///         }
     ///
-    ///         protected override IDictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
-    ///             MessageHandlerMap =>
-    ///             new Dictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
+    ///         protected override IDictionary<Type, MessageHandler> MessageHandlerMap =>
+    ///             new Dictionary<Type, MessageHandler>
     ///             {
     ///                 {
     ///                     typeof(string),
-    ///                     ConsumerHandler.Wrap<string>((message, info, arg3) =>
+    ///                     MessageHandlerHelper.Wrap<string>((message, info, token) =>
     ///                     {
-    ///                         var msg = System.Text.Json.JsonSerializer.Deserialize<EchoMessage>(message.Body, new JsonSerializerOptions()
-    ///                         {
-    ///                             PropertyNameCaseInsensitive = true,
-    ///                         });
-    ///
-    ///                         Console.WriteLine($"Received simple message: {message.Body}");
-    ///                         Console.WriteLine($"Received simple deserialized message: {msg.Text}");
+    ///                         Logger.LogDebug($"Received message: {message.Body}");
     ///
     ///                         return Task.CompletedTask;
     ///                     })
@@ -216,31 +207,75 @@ namespace EasyNetQ.HostedService
 
             return Bus.Consume(RabbitMqConfig.DeclaredQueue ?? queue.AsIQueue, handlers =>
             {
+                // generic method `IHandlerRegistration.Add<TMessage>`
                 var addMethodInfo = handlers.GetType().GetMethod("Add");
 
                 Debug.Assert(addMethodInfo != null, "Method Add not found in bus handlers collection object.");
 
-                var wrapMethodInfo = typeof(ConsumerHandler).GetMethod("Wrap");
+                // generic method `MessageHandlerHelper.Wrap<TMessage>`
+                var wrapMethodInfo = typeof(MessageHandlerHelper).GetMethod("Wrap");
 
                 Debug.Assert(wrapMethodInfo != null, "Method Add not found in bus handlers collection object.");
+
+                // generic method `MessageHandlerExtensions.ToGenericMessageHandler<TMessage>`
+                var toGenericMessageHandlerMethodInfo =
+                    typeof(MessageHandlerExtensions).GetMethod("ToGenericMessageHandler");
+
+                Debug.Assert(toGenericMessageHandlerMethodInfo != null,
+                    $"Method ToGenericMessageHandler not found in {nameof(MessageHandlerExtensions)}");
+
+                // generic method `MessageHandlerExtensions.ToFunc<TMessage>`
+                var toFuncMethodInfo = typeof(MessageHandlerExtensions).GetMethod("ToFunc");
+
+                Debug.Assert(toFuncMethodInfo != null,
+                    $"Method ToFunc not found in {nameof(MessageHandlerExtensions)}");
 
                 Debug.Assert(MessageHandlerMap != null,
                     $"{nameof(MessageHandlerMap)} returned null in {nameof(InitializeConsumer)}");
 
+                // each handler is of type `MessageHandler`
                 foreach (var (type, handler) in MessageHandlerMap)
                 {
+                    // set `type` as the type argument for a parameterized instance of the generic method
+                    // MessageHandlerExtensions.ToGenericMessageHandler<TMessage>
+                    var genericToGenericMessageHandlerMethod =
+                        toGenericMessageHandlerMethodInfo.MakeGenericMethod(type);
+
+                    // invoke the parameterized MessageHandlerExtensions.ToGenericMessageHandler<TMessage> to turn the
+                    // `MessageHandler` into a `MessageHandler<TMessage>`
+                    var typedHandler = genericToGenericMessageHandlerMethod.Invoke(null, new[] {(object) handler});
+
+                    // set `type` as the type argument for a parameterized instance of the generic method
+                    // `MessageHandlerHelper.Wrap<TMessage>`
                     var genericWrapMethod = wrapMethodInfo.MakeGenericMethod(type);
 
-                    var wrappedHandler = genericWrapMethod.Invoke(
-                        null, new object[] {handler, Bus, RabbitMqConfig, cancellationToken});
+                    // wrap the `MessageHandler<TMessage>` handler in a try/catch statement
+                    var wrappedHandler = genericWrapMethod.Invoke(null,
+                        new[] {typedHandler, Bus, RabbitMqConfig, cancellationToken});
 
-                    addMethodInfo.MakeGenericMethod(type).Invoke(handlers, new[] {wrappedHandler});
+                    // set `type` as the type argument for a parameterized instance of the generic method
+                    // `MessageHandlerExtensions.ToFunc<TMessage>`
+                    var genericToFuncMethod = toFuncMethodInfo.MakeGenericMethod(type);
+
+                    // turn a `MessageHandler<TMessage>` into a
+                    // `Func<IMessage<TMessage>, MessageReceivedInfo, CancellationToken, Task>`
+                    var wrappedHandlerFunc = genericToFuncMethod.Invoke(null, new[] {wrappedHandler});
+                    
+                    // set `type` as the type argument for a parameterized instance of the generic method
+                    // `IHandlerRegistration.Add`
+                    var genericAddMethod = addMethodInfo.MakeGenericMethod(type);
+
+                    // add a message handler of type
+                    // `Func<IMessage<TMessage>, MessageReceivedInfo, CancellationToken, Task>` to the
+                    // `IHandlerRegistration` instance
+                    genericAddMethod.Invoke(handlers, new[] {wrappedHandlerFunc});
                 }
 
                 if (!MessageHandlerMap.ContainsKey(typeof(object)))
                 {
-                    handlers.Add(ConsumerHandler.Wrap<object>(
-                        MessageHandlersProxy.Default.HandleMessage, Bus, RabbitMqConfig, cancellationToken));
+                    handlers.Add(
+                        Wrap<object>(MessageHandlersProxy.Default.HandleMessage, Bus, RabbitMqConfig, cancellationToken)
+                            .ToFunc());
                 }
             }, config =>
             {

@@ -192,12 +192,41 @@
              If not, a new <see cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/> singleton is registered.
              </remarks>
         </member>
-        <member name="T:EasyNetQ.HostedService.Internals.ConsumerHandler">
+        <member name="T:EasyNetQ.HostedService.Internals.Extensions.MessageHandlerExtensions">
+            <summary>
+            Extension methods for <see cref="T:EasyNetQ.HostedService.Message.Abstractions.MessageHandler`1"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Internals.Extensions.MessageHandlerExtensions.ToGenericMessageHandler``1(EasyNetQ.HostedService.Message.Abstractions.MessageHandler)">
+            <summary>
+            Converts a <see cref="T:EasyNetQ.HostedService.Message.Abstractions.MessageHandler"/> into a
+            <see cref="T:System.Func`4"/> where <c>T1</c> is of type <see cref="T:EasyNetQ.IMessage`1"/>.
+            </summary>
+            <param name="messageHandler">
+            The message handle to convert.
+            </param>
+            <typeparam name="TMessage">
+            The type of messages that the <paramref name="messageHandler"/> handles.
+            </typeparam>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Internals.Extensions.MessageHandlerExtensions.ToFunc``1(EasyNetQ.HostedService.Message.Abstractions.MessageHandler{``0})">
+            <summary>
+            Converts a <see cref="T:EasyNetQ.HostedService.Message.Abstractions.MessageHandler`1"/> into a
+            <see cref="T:System.Func`4"/> where <c>T1</c> is of type <see cref="T:EasyNetQ.IMessage`1"/>.
+            </summary>
+            <param name="messageHandler">
+            The message handle to convert.
+            </param>
+            <typeparam name="TMessage">
+            The type of messages that the <paramref name="messageHandler"/> handles.
+            </typeparam>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Internals.MessageHandlerHelper">
             <summary>
             A helper class for manipulating consumer handlers written by the library's client.
             </summary>
         </member>
-        <member name="M:EasyNetQ.HostedService.Internals.ConsumerHandler.Wrap``1(System.Func{EasyNetQ.IMessage{``0},EasyNetQ.MessageReceivedInfo,System.Threading.CancellationToken,System.Threading.Tasks.Task},EasyNetQ.IAdvancedBus,EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Threading.CancellationToken)">
+        <member name="M:EasyNetQ.HostedService.Internals.MessageHandlerHelper.Wrap``1(EasyNetQ.HostedService.Message.Abstractions.MessageHandler{``0},EasyNetQ.IAdvancedBus,EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Threading.CancellationToken)">
              <summary>
              Wraps a consumer's handler in order to wrap the call to the initial handler in a try/catch clause.
             
@@ -499,15 +528,11 @@
             
              using System;
              using System.Collections.Generic;
-             using System.Text.Json;
-             using System.Threading;
              using System.Threading.Tasks;
-             using AMLRecordsIndexer.RabbitMQ.Messages;
-             using EasyNetQ;
-             using EasyNetQ.HostedService;
              using EasyNetQ.HostedService.Message.Abstractions;
              using Microsoft.Extensions.Hosting;
-             using JsonSerializer = System.Text.Json.JsonSerializer;
+             using Microsoft.Extensions.Logging;
+             using static EasyNetQ.HostedService.Message.Abstractions.MessageHandlerHelper;
             
              namespace EasyNetQ.HostedService.TestApp
              {
@@ -524,21 +549,14 @@
                          // do something with env
                      }
             
-                     protected override IDictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
-                         MessageHandlerMap =>
-                         new Dictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
+                     protected override IDictionary<Type, MessageHandler> MessageHandlerMap =>
+                         new Dictionary<Type, MessageHandler>
                          {
                              {
                                  typeof(string),
-                                 ConsumerHandler.Wrap<string>((message, info, arg3) =>
+                                 MessageHandlerHelper.Wrap<string>((message, info, token) =>
                                  {
-                                     var msg = System.Text.Json.JsonSerializer.Deserialize<EchoMessage>(message.Body, new JsonSerializerOptions()
-                                     {
-                                         PropertyNameCaseInsensitive = true,
-                                     });
-            
-                                     Console.WriteLine($"Received simple message: {message.Body}");
-                                     Console.WriteLine($"Received simple deserialized message: {msg.Text}");
+                                     Logger.LogDebug($"Received message: {message.Body}");
             
                                      return Task.CompletedTask;
                                  })

@@ -4,25 +4,6 @@
         <name>EasyNetQ.HostedService.Message.Abstractions</name>
     </assembly>
     <members>
-        <member name="T:EasyNetQ.HostedService.Message.Abstractions.ConsumerHandler">
-            <summary>
-            A helper class for manipulating consumer handlers written by the library's client.
-            </summary>
-        </member>
-        <member name="M:EasyNetQ.HostedService.Message.Abstractions.ConsumerHandler.Wrap``1(System.Func{EasyNetQ.IMessage{``0},EasyNetQ.MessageReceivedInfo,System.Threading.CancellationToken,System.Threading.Tasks.Task})">
-             <summary>
-             Wraps a consumer handler which accepts an <see cref="T:EasyNetQ.IMessage`1"/> within a handler that accepts an
-             <see cref="T:EasyNetQ.IMessage"/>.
-            
-             This is done in order to use a common key/value data structure to hold the handler per consumer message
-             type.
-             </summary>
-             <param name="handler"/>
-             <typeparam name="TMessage"/>
-             <returns>
-             The wrapped handler to register as a consumer handler for a specific message type.
-             </returns>
-        </member>
         <member name="T:EasyNetQ.HostedService.Message.Abstractions.IMessageHandler`1">
             <summary>
             A message handler which knows how to handle messages of type <c>TMessage</c>.
@@ -38,6 +19,62 @@
             <param name="i"/>
             <param name="t"/>
             <returns/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Message.Abstractions.MessageHandler">
+            <summary>
+            A handler that handles messages received by a RabbitMQ consumer.
+            </summary>
+            <param name="message">
+            The received message.
+            </param>
+            <param name="info">
+            The RabbitMQ metadata that accompanied the received message.
+            </param>
+            <param name="token">
+            A cancellation token with which the handling of the message can be canceled.
+            </param>
+            <returns>
+            Returns a task, with which client code can wait for a message to be handled.
+            </returns>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Message.Abstractions.MessageHandler`1">
+            <summary>
+            A handler that handles messages received by a RabbitMQ consumer.
+            </summary>
+            <param name="message">
+            The received message.
+            </param>
+            <param name="info">
+            The RabbitMQ metadata that accompanied the received message.
+            </param>
+            <param name="token">
+            A cancellation token with which the handling of the message can be canceled.
+            </param>
+            <typeparam name="TMessage">
+            The type of message that the message handler accepts.
+            </typeparam>
+            <returns>
+            Returns a task, with which client code can wait for a message to be handled.
+            </returns>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Message.Abstractions.MessageHandlerHelper">
+            <summary>
+            A helper class for manipulating message handlers written by the library's client.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Message.Abstractions.MessageHandlerHelper.Wrap``1(EasyNetQ.HostedService.Message.Abstractions.MessageHandler{``0})">
+             <summary>
+             Wraps a consumer handler which accepts an <see cref="T:EasyNetQ.IMessage`1"/> within a handler that accepts an
+             <see cref="T:EasyNetQ.IMessage"/>.
+            
+             This is done in order to use a common key/value data structure to hold the handler per consumer message
+             type.
+             </summary>
+             <param name="handler"/>
+             <typeparam name="TMessage"/>
+             <returns>
+             The wrapped handler to register as a consumer handler for a specific message type.
+             </returns>
         </member>
     </members>
 </doc>

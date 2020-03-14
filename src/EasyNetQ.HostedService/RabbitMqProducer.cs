@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using EasyNetQ.HostedService.DependencyInjection;
+using EasyNetQ.HostedService.Message.Abstractions;
 using EasyNetQ.HostedService.Models;
 using EasyNetQ.Topology;
 using Microsoft.Extensions.Logging;
@@ -305,8 +306,7 @@ namespace EasyNetQ.HostedService
         ///
         /// The default implementation for producers returns <c>null</c>.
         /// </summary>
-        protected sealed override IDictionary<Type, Func<IMessage, MessageReceivedInfo, CancellationToken, Task>>
-            MessageHandlerMap => null!;
+        protected sealed override IDictionary<Type, MessageHandler> MessageHandlerMap => null!;
 
         /// <summary>
         /// Expected to be overriden by consumers.

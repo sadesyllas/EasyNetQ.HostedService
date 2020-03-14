@@ -1,14 +1,14 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using EasyNetQ.HostedService.Abstractions;
+using EasyNetQ.HostedService.Message.Abstractions;
 
 namespace EasyNetQ.HostedService.Internals
 {
     /// <summary>
     /// A helper class for manipulating consumer handlers written by the library's client.
     /// </summary>
-    internal static class ConsumerHandler
+    internal static class MessageHandlerHelper
     {
         /// <summary>
         /// Wraps a consumer's handler in order to wrap the call to the initial handler in a try/catch clause.
@@ -22,11 +22,8 @@ namespace EasyNetQ.HostedService.Internals
         /// <param name="cancellationToken"/>
         /// <typeparam name="TMessage"/>
         /// <returns/>
-        public static Func<IMessage<TMessage>, MessageReceivedInfo, CancellationToken, Task> Wrap<TMessage>(
-            Func<IMessage<TMessage>, MessageReceivedInfo, CancellationToken, Task> handler,
-            IAdvancedBus rmqBus,
-            IRabbitMqConfig rabbitMqConfig,
-            CancellationToken cancellationToken) =>
+        public static MessageHandler<TMessage> Wrap<TMessage>(MessageHandler<TMessage> handler, IAdvancedBus rmqBus,
+            IRabbitMqConfig rabbitMqConfig, CancellationToken cancellationToken) =>
             (m, i, t) =>
             {
                 try
