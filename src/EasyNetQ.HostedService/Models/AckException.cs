@@ -12,7 +12,7 @@ namespace EasyNetQ.HostedService.Models
         /// <inheritdoc/>
         /// </summary>
         /// <param name="message"/>
-        public AckException(string? message) : base(message)
+        public AckException(string? message = "") : base(message)
         {
         }
 
@@ -21,7 +21,7 @@ namespace EasyNetQ.HostedService.Models
         /// </summary>
         /// <param name="message"/>
         /// <param name="innerException"/>
-        public AckException(string? message, Exception? innerException) : base(message, innerException)
+        public AckException(Exception? innerException, string? message = "") : base(message, innerException)
         {
         }
     }

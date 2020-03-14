@@ -27,6 +27,8 @@ namespace EasyNetQ.HostedService.Internals
 
         public override AckStrategy HandleConsumerError(ConsumerExecutionContext context, Exception exception)
         {
+            string message;
+
             if (!_disposed && !_disposing)
             {
                 var consumerException = exception switch
@@ -44,9 +46,15 @@ namespace EasyNetQ.HostedService.Internals
 
                         return AckStrategies.NackWithoutRequeue;
                     default:
-                        _logger?.LogError(
-                            $"Consumer exception: {consumerException.InnerException?.Message}\n" +
-                            $"{consumerException.InnerException?.StackTrace}");
+                        var innerException = consumerException.InnerException;
+                        var innerInnerException = consumerException.InnerException?.InnerException;
+
+                        if (!string.IsNullOrWhiteSpace(innerException?.Message) || innerInnerException != null)
+                        {
+                            message = $"Consumer exception: {innerException?.Message}\n{innerException?.StackTrace}";
+
+                            _logger?.LogError(consumerException, message);
+                        }
 
                         return consumerException.InnerException switch
                         {
@@ -58,8 +66,7 @@ namespace EasyNetQ.HostedService.Internals
                 }
             }
 
-            var message =
-                $"The {nameof(ConsumerErrorStrategy)} has already been disposed, while attempting to handle a " +
+            message = $"The {nameof(ConsumerErrorStrategy)} has already been disposed, while attempting to handle a " +
                 "consumer error, and the received message ({info}) will be requeued.";
 
             _logger?.LogError(message, (object) context.Info);

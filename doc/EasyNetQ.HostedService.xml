@@ -298,7 +298,7 @@
             </summary>
             <param name="message"/>
         </member>
-        <member name="M:EasyNetQ.HostedService.Models.AckException.#ctor(System.String,System.Exception)">
+        <member name="M:EasyNetQ.HostedService.Models.AckException.#ctor(System.Exception,System.String)">
             <summary>
             <inheritdoc/>
             </summary>
@@ -325,7 +325,7 @@
             </summary>
             <param name="message"/>
         </member>
-        <member name="M:EasyNetQ.HostedService.Models.NackWithoutRequeueException.#ctor(System.String,System.Exception)">
+        <member name="M:EasyNetQ.HostedService.Models.NackWithoutRequeueException.#ctor(System.Exception,System.String)">
             <summary>
             <inheritdoc/>
             </summary>
@@ -343,7 +343,7 @@
             </summary>
             <param name="message"/>
         </member>
-        <member name="M:EasyNetQ.HostedService.Models.NackWithRequeueException.#ctor(System.String,System.Exception)">
+        <member name="M:EasyNetQ.HostedService.Models.NackWithRequeueException.#ctor(System.Exception,System.String)">
             <summary>
             <inheritdoc/>
             </summary>
