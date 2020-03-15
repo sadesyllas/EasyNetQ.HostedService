@@ -12,6 +12,8 @@ namespace EasyNetQ.HostedService.Models
     [Serializable]
     public sealed class RabbitMqConfig : IRabbitMqConfig, ICloneable
     {
+        private IQueue? _declaredQueue;
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
@@ -55,7 +57,27 @@ namespace EasyNetQ.HostedService.Models
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public IQueue? DeclaredQueue { get; set; }
+        public IQueue? DeclaredQueue
+        {
+            get => _declaredQueue;
+            set
+            {
+                if (value == null)
+                {
+                    throw new Exception($"Null is not a valid value when setting {nameof(DeclaredQueue)}.");
+                }
+
+                Queue = new QueueConfig
+                {
+                    Name = value.Name,
+                    Durable = value.IsDurable,
+                    DeclareExclusive = value.IsExclusive,
+                    AutoDelete = value.IsAutoDelete
+                };
+
+                _declaredQueue = value;
+            }
+        }
 
         /// <summary>
         /// <inheritdoc/>

@@ -9,7 +9,7 @@
     <PropertyGroup>
         <PackageId>EasyNetQ.HostedService</PackageId>
         <Description>A wrapper around EasyNetQ (https://easynetq.com/) to provide an easy API for a .NET Core hosted service.</Description>
-        <Version>0.1.0-beta.6</Version>
+        <Version>0.1.0-beta.7</Version>
         <Authors>Spyridon Alfredos Desyllas</Authors>
         <PackageProjectUrl>https://github.com/sadesyllas/EasyNetQ.HostedService</PackageProjectUrl>
         <PackageLicenseUrl>https://github.com/sadesyllas/EasyNetQ.HostedService/blob/master/LICENSE</PackageLicenseUrl>
