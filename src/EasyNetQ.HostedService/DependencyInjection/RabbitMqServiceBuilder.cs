@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.Internals;
 using EasyNetQ.HostedService.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace EasyNetQ.HostedService.DependencyInjection
 {
@@ -29,7 +27,6 @@ namespace EasyNetQ.HostedService.DependencyInjection
     {
         private bool _configUseStronglyTypedMessages;
         private bool _configUseCorrelationIds;
-        private bool _configAutoDeclareQueue;
         private IRabbitMqConfig? _configRabbitMqConfig;
         private readonly List<OnConnectedCallback> _configOnConnected = new List<OnConnectedCallback>();
 
@@ -67,24 +64,12 @@ namespace EasyNetQ.HostedService.DependencyInjection
         }
 
         /// <summary>
-        /// If set, consumers will automatically declare the configured queue in <see cref="IRabbitMqConfig"/>.
-        /// </summary>
-        public RabbitMqServiceBuilder<T> AutoDeclareQueue
-        {
-            get
-            {
-                _configAutoDeclareQueue = true;
-
-                return this;
-            }
-        }
-
-        /// <summary>
         /// Sets the <see cref="IRabbitMqConfig"/> for the registered <see cref="RabbitMqService{T}"/>.
         /// </summary>
         public RabbitMqServiceBuilder<T> WithRabbitMqConfig(IRabbitMqConfig rabbitMqConfig)
         {
             // make sure that we are not using the same IRabbitMqConfig instance as the argument
+            // ReSharper disable once ConstantConditionalAccessQualifier
             _configRabbitMqConfig = rabbitMqConfig?.Copy ?? new RabbitMqConfig();
 
             return this;
@@ -197,33 +182,6 @@ namespace EasyNetQ.HostedService.DependencyInjection
             }
             // ReSharper restore HeuristicUnreachableCode
 
-            if (isConsumer && _configAutoDeclareQueue)
-            {
-                OnConnected((bus, rabbitMqConfig, cancellationToken, logger) =>
-                {
-                    Debug.Assert(
-                        rabbitMqConfig != null,
-                        $"Null {nameof(IRabbitMqConfig)} while trying to auto-declare the consumer's queue.");
-
-                    Debug.Assert(
-                        rabbitMqConfig.Queue != null,
-                        $"Null {nameof(IRabbitMqConfig.Queue)} while trying to auto-declare the consumer's queue.");
-
-                    logger?.LogDebug(
-                        $"Declaring queue \"{rabbitMqConfig.Queue.Name}\" (Id = {rabbitMqConfig.Id}, " +
-                        $"{rabbitMqConfig.Queue}).");
-
-                    var queue = bus.QueueDeclare(rabbitMqConfig.Queue.Name, config =>
-                    {
-                        config.AsDurable(rabbitMqConfig.Queue.Durable);
-                        config.AsExclusive(rabbitMqConfig.Queue.DeclareExclusive);
-                        config.AsAutoDelete(rabbitMqConfig.Queue.AutoDelete);
-                    }, cancellationToken);
-
-                    rabbitMqConfig.DeclaredQueue = queue;
-                });
-            }
-
             Func<IServiceProvider, T> ServiceFactoryFactory()
             {
                 T service = null!;
@@ -231,6 +189,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
 
                 return serviceProvider =>
                 {
+                    // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                     if (service != null)
                     {
                         return service;

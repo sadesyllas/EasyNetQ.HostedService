@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using EasyNetQ.HostedService.Abstractions;
-using EasyNetQ.Topology;
 
 namespace EasyNetQ.HostedService.Models
 {
@@ -12,8 +11,6 @@ namespace EasyNetQ.HostedService.Models
     [Serializable]
     public sealed class RabbitMqConfig : IRabbitMqConfig, ICloneable
     {
-        private IQueue? _declaredQueue;
-
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
@@ -47,37 +44,7 @@ namespace EasyNetQ.HostedService.Models
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public ushort RequestedHeartbeatSeconds { get; set; } = 60;
-
-        /// <summary>
-        /// <inheritdoc/>
-        /// </summary>
-        public QueueConfig? Queue { get; set; }
-
-        /// <summary>
-        /// <inheritdoc/>
-        /// </summary>
-        public IQueue? DeclaredQueue
-        {
-            get => _declaredQueue;
-            set
-            {
-                if (value == null)
-                {
-                    throw new Exception($"Null is not a valid value when setting {nameof(DeclaredQueue)}.");
-                }
-
-                Queue = new QueueConfig
-                {
-                    Name = value.Name,
-                    Durable = value.IsDurable,
-                    DeclareExclusive = value.IsExclusive,
-                    AutoDelete = value.IsAutoDelete
-                };
-
-                _declaredQueue = value;
-            }
-        }
+        public TimeSpan RequestedHeartbeat { get; set; } = TimeSpan.FromMinutes(1);
 
         /// <summary>
         /// <inheritdoc/>
@@ -95,7 +62,7 @@ namespace EasyNetQ.HostedService.Models
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public ushort MessageDeliveryTimeoutSeconds { get; set; } = 1;
+        public TimeSpan MessageDeliveryTimeout { get; set; } = TimeSpan.FromSeconds(1);
 
         /// <summary>
         /// <inheritdoc/>

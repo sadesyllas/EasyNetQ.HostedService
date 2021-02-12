@@ -1,5 +1,5 @@
+using System;
 using EasyNetQ.HostedService.Models;
-using EasyNetQ.Topology;
 
 namespace EasyNetQ.HostedService.Abstractions
 {
@@ -45,7 +45,7 @@ namespace EasyNetQ.HostedService.Abstractions
         /// <summary>
         /// The connection heartbeat in seconds.
         /// </summary>
-        public ushort RequestedHeartbeatSeconds { get; set; }
+        public TimeSpan RequestedHeartbeat { get; set; }
 
         /// <summary>
         /// For producers, whether to use persistent messages when sending a message.
@@ -60,7 +60,7 @@ namespace EasyNetQ.HostedService.Abstractions
         /// <summary>
         /// For producers, it sets the timeout for publishing a message to the RabbitMQ server.
         /// </summary>
-        public ushort MessageDeliveryTimeoutSeconds { get; set; }
+        public TimeSpan MessageDeliveryTimeout { get; set; }
 
         /// <summary>
         /// For the default producer implementation, the back off delay when an error occurs in the producer's loop.
@@ -68,18 +68,6 @@ namespace EasyNetQ.HostedService.Abstractions
         /// For details about the producer's queue, see <see cref="RabbitMqProducer{T}"/>.
         /// </summary>
         public int PublisherLoopErrorBackOffMilliseconds { get; set; }
-
-        /// <summary>
-        /// The queue configuration to use for consumers.
-        ///
-        /// For details about consumer queue configuration, see <see cref="QueueConfig"/>.
-        /// </summary>
-        public QueueConfig? Queue { get; set; }
-
-        /// <summary>
-        /// The <see cref="IQueue"/> returned when a queue is declared by a consumer.
-        /// </summary>
-        public IQueue? DeclaredQueue { get; set; }
 
         /// <summary>
         /// Makes easy reusing a <see cref="RabbitMqConfig"/>.

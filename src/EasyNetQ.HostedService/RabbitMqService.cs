@@ -7,7 +7,6 @@ using EasyNetQ.Consumer;
 using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
-using EasyNetQ.HostedService.Message.Abstractions;
 using EasyNetQ.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -71,20 +70,6 @@ namespace EasyNetQ.HostedService
         }
 
         /// <summary>
-        /// This property must be implemented by consumer types so that the service knows how to handle each message
-        /// by type.
-        ///
-        /// If using typed messages (see <see cref="RabbitMqServiceBuilder{T}.WithStronglyTypedMessages"/>), then a
-        /// handler should be provided for each expected message type.
-        ///
-        /// If not using typed messages, then only a handler for the <see cref="string"/> should be registered.
-        ///
-        /// In any case, a handler for the <see cref="object"/> type is always registered, if not already registered,
-        /// as a fallback which throws an <see cref="UnhandledMessageTypeException"/>.
-        /// </summary>
-        protected abstract IDictionary<Type, MessageHandler> MessageHandlerMap { get; }
-
-        /// <summary>
         /// The initialized <see cref="IAdvancedBus"/> that is exposed to subclasses of
         /// <see cref="RabbitMqService{T}"/>.
         /// </summary>
@@ -131,6 +116,7 @@ namespace EasyNetQ.HostedService
             IServiceProvider serviceProvider)
             where TDerived : RabbitMqService<TDerived>
         {
+            // ReSharper disable once ConstantConditionalAccessQualifier
             Debug.Assert(busProxy?.Bus != null, $"{nameof(IBusProxy.Bus)} must not be null.");
 
             Debug.Assert(rmqConfig != null, $"{nameof(IRabbitMqConfig)} must not be null.");
@@ -161,15 +147,6 @@ namespace EasyNetQ.HostedService
             service._isProperlyInitialized = true;
 
             service.Initialize();
-
-            if (isConsumer)
-            {
-                Debug.Assert(service._rmqConfig.Queue != null, $"{nameof(IRabbitMqConfig.Queue)} must not be null.");
-
-                Debug.Assert(
-                    !string.IsNullOrWhiteSpace(service._rmqConfig.Queue.Name),
-                    $"{nameof(IRabbitMqConfig.Queue.Name)} must not be null, blank or whitespace.");
-            }
 
             return service;
         }
@@ -211,10 +188,10 @@ namespace EasyNetQ.HostedService
                 UserName = rmqConfig.UserName,
                 Password = rmqConfig.Password,
                 Product = nameof(RabbitMqService<T>),
-                RequestedHeartbeat = rmqConfig.RequestedHeartbeatSeconds,
+                RequestedHeartbeat = rmqConfig.RequestedHeartbeat,
                 PersistentMessages = rmqConfig.PersistentMessages,
                 PublisherConfirms = rmqConfig.PublisherConfirms,
-                Timeout = rmqConfig.MessageDeliveryTimeoutSeconds,
+                Timeout = rmqConfig.MessageDeliveryTimeout,
             }, container =>
             {
                 container.Register(serviceProvider);
@@ -332,6 +309,17 @@ namespace EasyNetQ.HostedService
 
             return Task.CompletedTask;
         }
+
+        /// <summary>
+        /// This method must be provided by classes derived from <see cref="RabbitMqConsumer{T}"/>, in order to provide
+        /// a message handler per expected message type.
+        /// </summary>
+        /// <param name="handlers"></param>
+        /// <remarks>
+        /// When the <see cref="UntypedMessageSerializationStrategy"/> is used, then it only makes sense to provide a
+        /// handler for the <see cref="string"/> type.
+        /// </remarks>
+        protected abstract void RegisterMessageHandlers(IHandlerRegistration handlers);
 
         /// <summary>
         /// This virtual function is called right after the instantiation of the subclass of

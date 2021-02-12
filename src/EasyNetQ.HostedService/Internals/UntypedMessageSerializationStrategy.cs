@@ -42,7 +42,7 @@ namespace EasyNetQ.HostedService.Internals
             var message = _serializer.BytesToMessage(typeof(object), body) switch
             {
                 string messageTmp => messageTmp,
-                var messageTmp => ((JObject)messageTmp).ToString()
+                var messageTmp => ((JObject) messageTmp).ToString()
             };
 
             return MessageFactory.CreateInstance(typeof(string), message, properties);

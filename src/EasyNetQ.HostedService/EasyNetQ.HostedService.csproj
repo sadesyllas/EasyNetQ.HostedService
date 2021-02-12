@@ -9,7 +9,7 @@
     <PropertyGroup>
         <PackageId>EasyNetQ.HostedService</PackageId>
         <Description>A wrapper around EasyNetQ (https://easynetq.com/) to provide an easy API for a .NET Core hosted service.</Description>
-        <Version>0.1.0-beta.7</Version>
+        <Version>0.1.0</Version>
         <Authors>Spyridon Alfredos Desyllas</Authors>
         <PackageProjectUrl>https://github.com/sadesyllas/EasyNetQ.HostedService</PackageProjectUrl>
         <PackageLicenseUrl>https://github.com/sadesyllas/EasyNetQ.HostedService/blob/master/LICENSE</PackageLicenseUrl>
@@ -17,7 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="EasyNetQ" Version="3.8.0-alpha0042" />
+        <PackageReference Include="EasyNetQ" Version="6.3.1" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="3.1.2" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.2" />
     </ItemGroup>
@@ -32,10 +32,6 @@
 
     <ItemGroup>
         <None Remove="obj\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\EasyNetQ.HostedService.Message.Abstractions\EasyNetQ.HostedService.Message.Abstractions.csproj" />
     </ItemGroup>
 
 </Project>

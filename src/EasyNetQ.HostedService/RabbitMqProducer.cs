@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using EasyNetQ.Consumer;
 using EasyNetQ.HostedService.DependencyInjection;
-using EasyNetQ.HostedService.Message.Abstractions;
 using EasyNetQ.HostedService.Models;
 using EasyNetQ.Topology;
 using Microsoft.Extensions.Logging;
@@ -53,7 +53,7 @@ namespace EasyNetQ.HostedService
     ///
     ///         protected override void Initialize()
     ///         {
-    ///             // use initialized members like `Bus` and `RabbitMqConfig`
+    ///             // use initialized members like Bus and RabbitMqConfig
     ///         }
     ///     }
     /// }
@@ -69,13 +69,13 @@ namespace EasyNetQ.HostedService
         /// <inheritdoc/>
         /// </summary>
         /// <param name="cancellationToken"/>
-        protected override void InitializeProducer(CancellationToken cancellationToken)
+        protected sealed override void InitializeProducer(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
 
-            LoadMessages();
-
             Logger?.LogDebug($"Starting producer loop with configuration {RabbitMqConfig.Id}.");
+
+            OnInitialization(cancellationToken);
 
             StartProducerLoop(cancellationToken);
         }
@@ -134,7 +134,7 @@ namespace EasyNetQ.HostedService
                 TaskCompletionSource = taskCompletionSource,
             };
 
-            _messages.Enqueue(message);
+            EnqueueMessage(message);
 
             _messageSemaphore.Release();
 
@@ -142,31 +142,52 @@ namespace EasyNetQ.HostedService
         }
 
         /// <summary>
-        /// If overriden it can persist enqueued but not yet sent messages.
-        ///
-        /// It is meant as a way to write messages to disk in case the service needs to stop.
+        /// Called by <see cref="InitializeProducer"/> before calling <see cref="StartProducerLoop"/>.
         /// </summary>
-        /// <remarks>
-        /// One should make sure to use <c>TaskCompletionSource.SetResult(PublishResult.NotPublished)</c> in order to
-        /// unblock clients waiting for their messages of interest to be published.
-        /// </remarks>
-        protected virtual void PersistMessages()
+        /// <param name="cancellationToken">
+        /// The cancellation token with which <see cref="InitializeProducer"/> has been called.
+        /// </param>
+        private protected virtual void OnInitialization(CancellationToken cancellationToken)
         {
-            Logger?.LogTrace(
-                $"When implemented, function {nameof(PersistMessages)} can store messages " +
-                "to persistent storage.");
         }
 
         /// <summary>
-        /// If overriden it can load and enqueue messages to be sent.
+        /// Enqueues a message to be sent by the producer.
         ///
-        /// It is meant as a way to load messages from disk when the service starts.
+        /// This method is called by <see cref="PublishAsync{TMessage}"/>.
         /// </summary>
-        protected virtual void LoadMessages()
+        /// <remarks>
+        /// One can override this method to provide an alternative mechanism for enqueuing the messages.
+        ///
+        /// If this method is overriden, <see cref="DequeueMessage"/> should also be overriden.
+        /// </remarks>
+        private protected virtual void EnqueueMessage(Message message) => _messages.Enqueue(message);
+
+        /// <summary>
+        /// Dequeues a message to be sent by the producer.
+        ///
+        /// This method is called by by the producer's message loop thread.
+        /// </summary>
+        /// <param name="message">
+        /// The message to enqueue.
+        /// </param>
+        /// <returns>
+        /// Returns <c>True</c> if a message was successfully dequeued, <c>False</c> otherwise.
+        /// </returns>
+        /// <remarks>
+        /// One can override this method to provide an alternative mechanism for dequeuing the messages.
+        ///
+        /// If this method is overriden, <see cref="EnqueueMessage"/> should also be overriden.
+        /// </remarks>
+        private protected virtual bool DequeueMessage(out Message message) => _messages.TryPeek(out message);
+
+        /// <summary>
+        /// This method is called by the producer's message loop thread, which started by
+        /// <see cref="StartProducerLoop"/>, after cancellation has been requested on the
+        /// <see cref="CancellationToken"/> with which <see cref="InitializeProducer"/> has been called.
+        /// </summary>
+        private protected virtual void OnCancellation()
         {
-            Logger?.LogTrace(
-                $"When implemented, function {nameof(LoadMessages)} can load messages " +
-                "from persistent storage.");
         }
 
         private void StartProducerLoop(CancellationToken cancellationToken) =>
@@ -183,7 +204,7 @@ namespace EasyNetQ.HostedService
                             _messages.ToList().ForEach(enqueuedMessage =>
                                 enqueuedMessage.TaskCompletionSource.SetResult(PublishResult.NotPublished));
 
-                            PersistMessages();
+                            OnCancellation();
 
                             return;
                         }
@@ -191,13 +212,14 @@ namespace EasyNetQ.HostedService
                         // SemaphoreSlim.Wait disposes of the CancellationTokenRegistration
                         _messageSemaphore.Wait(cancellationToken);
 
-                        if (_messages.TryPeek(out message))
+                        if (DequeueMessage(out message))
                         {
                             var exchange = new Exchange(message.Exchange);
 
                             var properties = new MessageProperties
                             {
-                                Type = $"{message.Type}, {message.Type.Assembly.GetName().Name}"
+                                Type = $"{message.Type}, {message.Type.Assembly.GetName().Name}",
+                                Headers = message.Headers
                             };
 
 #if LOG_DEBUG_RABBITMQ_PRODUCER_PUBLISHED_MESSAGES
@@ -279,7 +301,7 @@ namespace EasyNetQ.HostedService
         /// <summary>
         /// The message type that is actually enqueued in the <see cref="ConcurrentQueue{T}"/>.
         /// </summary>
-        private sealed class Message
+        private protected sealed class Message
         {
             // ReSharper disable RedundantDefaultMemberInitializer
 
@@ -287,6 +309,7 @@ namespace EasyNetQ.HostedService
             public string RoutingKey { get; set; } = null!;
             public bool Mandatory { get; set; }
             public byte[] Payload { get; set; } = null!;
+            public IDictionary<string, object> Headers { get; set; } = null!;
             public Type Type { get; set; } = null!;
             public TaskCompletionSource<PublishResult> TaskCompletionSource { get; set; } = null!;
 
@@ -304,9 +327,12 @@ namespace EasyNetQ.HostedService
         /// <summary>
         /// Expected to be overriden by consumers.
         ///
-        /// The default implementation for producers returns <c>null</c>.
+        /// The default implementation for producers throws a <see cref="NotImplementedException"/>.
         /// </summary>
-        protected sealed override IDictionary<Type, MessageHandler> MessageHandlerMap => null!;
+        protected override void RegisterMessageHandlers(IHandlerRegistration handlers)
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary>
         /// Expected to be overriden by consumers.

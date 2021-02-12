@@ -21,42 +21,57 @@ namespace EasyNetQ.HostedService.TestApp
 ###### Example consumer
 
 ```c#
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using EasyNetQ.HostedService.Message.Abstractions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using static EasyNetQ.HostedService.Message.Abstractions.MessageHandlerHelper;
-
 namespace EasyNetQ.HostedService.TestApp
 {
+    public struct EchoMessage
+    {
+        public string Text { get; set; }
+    }
+
     public class MyInjectableRabbitMqConsumer : RabbitMqConsumer<MyInjectableRabbitMqConsumer>
     {
         // optional constructor with additional injected dependencies
-        public void MyInjectableRabbitMqConsumer(IHostEnvironment env)
+        public MyInjectableRabbitMqConsumer(IHostEnvironment env)
         {
             // do something with env
         }
-
-        protected override IDictionary<Type, MessageHandler> MessageHandlerMap =>
-            new Dictionary<Type, MessageHandler>
-            {
-                {
-                    typeof(string),
-                    MessageHandlerHelper.Wrap<string>((message, info, token) =>
-                    {
-                        Logger.LogDebug($"Received message: {message.Body}");
-
-                        return Task.CompletedTask;
-                    })
-                }
-            };
-
+        
         protected override void Initialize()
         {
-            // use initialized members like `Bus` and `RabbitMqConfig`
+            // use initialized members like Bus and RabbitMqConfig (eg, Bus.QueueDeclare(...))
         }
+
+        protected override void RegisterMessageHandlers(IHandlerRegistration handlers)
+        {
+            handlers.Add((IMessageHandler<string>) HandleMessage);
+        }
+
+        protected override ConsumerConfig GetConsumerConfig(CancellationToken cancellationToken)
+        {
+            return new ConsumerConfig
+            {
+                Queue = new Queue("MyQueueName")
+            };
+        }
+
+        protected override void OnStartConsumingEvent(StartConsumingSucceededEvent @event)
+        {
+            // the consumer has successfully started to consume
+        }
+
+        protected override void OnStartConsumingEvent(StartConsumingFailedEvent @event)
+        {
+            // the consumer has failed to start consuming
+        }
+
+        private Task<AckStrategy> HandleMessage(IMessage<string> message, MessageReceivedInfo info,
+            CancellationToken token)
+        {
+            Logger.LogDebug($"Received untyped message: {message.Body}");
+
+            return Task.FromResult(AckStrategies.Ack);
+        }
+    }
 }
 ```
 
@@ -170,7 +185,6 @@ namespace EasyNetQ.HostedService.TestApp
 
                     new RabbitMqServiceBuilder()
                         .WithRabbitMqConfig(rabbitMqConfigConsumer)
-                        .AutoDeclareQueue
                         .Add<MyInjectableRabbitMqConsumer>(services);
 
                     var rabbitMqConfigProducer = rabbitMqConfigConsumer.Copy;
@@ -197,7 +211,6 @@ package matches the one in
 
 If you have `doxygen` installed, by running `doxygen` in the solution's
 directory, the configuration `Doxyfile` is automatically used and the HTML
-documentation for both `EasyNetQ.HostedService` and
-`EasyNetQ.HostedService.Message.Abstractions` will become available in
-directory `doc/html`.
+documentation for `EasyNetQ.HostedService` will become available in directory
+`doc/html`.
 

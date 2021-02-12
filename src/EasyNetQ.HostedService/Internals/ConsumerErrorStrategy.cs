@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace EasyNetQ.HostedService.Internals
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     internal sealed class ConsumerErrorStrategy : DefaultConsumerErrorStrategy
     {
         private readonly ILogger<ConsumerErrorStrategy>? _logger;
@@ -67,9 +68,9 @@ namespace EasyNetQ.HostedService.Internals
             }
 
             message = $"The {nameof(ConsumerErrorStrategy)} has already been disposed, while attempting to handle a " +
-                "consumer error, and the received message ({info}) will be requeued.";
+                      "consumer error, and the received message ({info}) will be requeued.";
 
-            _logger?.LogError(message, (object) context.Info);
+            _logger?.LogError(message, (object) context.ReceivedInfo);
 
             return AckStrategies.NackWithRequeue;
         }
