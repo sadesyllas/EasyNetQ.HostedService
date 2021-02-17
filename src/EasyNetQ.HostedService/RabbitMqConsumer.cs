@@ -133,8 +133,8 @@ namespace EasyNetQ.HostedService
         /// </remarks>
         protected virtual void OnStartConsumingEvent(StartConsumingSucceededEvent @event) =>
             Logger?.LogDebug(
-                $"Started consuming from {@event.Queue.Name} " +
-                $"({JsonConvert.SerializeObject(@event.Queue.Arguments)}).");
+                $"Started consuming from {@event.Queue.Name} with args: " +
+                $"{JsonConvert.SerializeObject(@event.Queue.Arguments)}.");
 
         /// <summary>
         /// Registers an event handler for the <see cref="StartConsumingFailedEvent"/> event.
