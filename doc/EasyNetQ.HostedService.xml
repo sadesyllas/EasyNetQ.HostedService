@@ -81,6 +81,11 @@
             The connection heartbeat in seconds.
             </summary>
         </member>
+        <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.ReconnectionAttemptInterval">
+            <summary>
+            The interval with which to try to reconnect, once disconnected.
+            </summary>
+        </member>
         <member name="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.PersistentMessages">
             <summary>
             For producers, whether to use persistent messages when sending a message.
@@ -339,6 +344,11 @@
             </summary>
         </member>
         <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.RequestedHeartbeat">
+            <summary>
+            <inheritdoc/>
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Models.RabbitMqConfig.ReconnectionAttemptInterval">
             <summary>
             <inheritdoc/>
             </summary>

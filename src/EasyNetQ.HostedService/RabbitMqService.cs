@@ -192,6 +192,7 @@ namespace EasyNetQ.HostedService
                 PersistentMessages = rmqConfig.PersistentMessages,
                 PublisherConfirms = rmqConfig.PublisherConfirms,
                 Timeout = rmqConfig.MessageDeliveryTimeout,
+                ConnectIntervalAttempt = rmqConfig.ReconnectionAttemptInterval,
             }, container =>
             {
                 container.Register(serviceProvider);

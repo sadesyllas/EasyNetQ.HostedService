@@ -48,6 +48,11 @@ namespace EasyNetQ.HostedService.Abstractions
         public TimeSpan RequestedHeartbeat { get; set; }
 
         /// <summary>
+        /// The interval with which to try to reconnect, once disconnected.
+        /// </summary>
+        public TimeSpan ReconnectionAttemptInterval { get; set; }
+
+        /// <summary>
         /// For producers, whether to use persistent messages when sending a message.
         /// </summary>
         public bool PersistentMessages { get; set; }

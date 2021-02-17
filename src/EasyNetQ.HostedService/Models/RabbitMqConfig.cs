@@ -49,6 +49,11 @@ namespace EasyNetQ.HostedService.Models
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
+        public TimeSpan ReconnectionAttemptInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
         /// <remarks>
         /// By default, it is set to <c>true</c>.
         /// </remarks>
