@@ -15,7 +15,7 @@ namespace EasyNetQ.HostedService.Models
         /// The <see cref="IQueue"/> object needed by a class derived from <see cref="RabbitMqConsumer{T}"/>, which
         /// represents the queue that the consumer is to consumer from.
         /// </summary>
-        public IQueue Queue { get; set; } = null!;
+        public IQueue Queue { get; set; } = null;
 
         /// <summary>
         /// The consumer's priority.

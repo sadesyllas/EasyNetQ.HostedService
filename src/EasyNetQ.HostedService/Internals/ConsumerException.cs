@@ -9,8 +9,8 @@ namespace EasyNetQ.HostedService.Internals
         {
         }
 
-        public IAdvancedBus? RmqBus { get; set; }
+        public IAdvancedBus RmqBus { get; set; }
 
-        public IRabbitMqConfig? RabbitMqConfig { get; set; }
+        public IRabbitMqConfig RabbitMqConfig { get; set; }
     }
 }
