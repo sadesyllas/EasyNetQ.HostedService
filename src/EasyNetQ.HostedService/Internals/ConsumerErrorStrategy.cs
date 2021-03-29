@@ -9,7 +9,7 @@ namespace EasyNetQ.HostedService.Internals
     // ReSharper disable once ClassNeverInstantiated.Global
     internal sealed class ConsumerErrorStrategy : DefaultConsumerErrorStrategy
     {
-        private readonly ILogger<ConsumerErrorStrategy>? _logger;
+        private readonly ILogger<ConsumerErrorStrategy> _logger;
         private bool _disposed;
         private bool _disposing;
 
@@ -32,11 +32,16 @@ namespace EasyNetQ.HostedService.Internals
 
             if (!_disposed && !_disposing)
             {
-                var consumerException = exception switch
+                ConsumerException consumerException;
+                switch (exception)
                 {
-                    ConsumerException ce => ce,
-                    var other => new ConsumerException(other)
-                };
+                    case ConsumerException ce:
+                        consumerException = ce;
+                        break;
+                    case var other:
+                        consumerException = new ConsumerException(other);
+                        break;
+                }
 
                 switch (consumerException.InnerException)
                 {
@@ -57,13 +62,15 @@ namespace EasyNetQ.HostedService.Internals
                             _logger?.LogError(consumerException, message);
                         }
 
-                        return consumerException.InnerException switch
+                        switch (consumerException.InnerException)
                         {
-                            IAckException _ => AckStrategies.Ack,
-                            INackWithRequeueException _ => AckStrategies.NackWithRequeue,
-                            INackWithoutRequeueException _ => AckStrategies.NackWithoutRequeue,
-                            _ => AckStrategies.NackWithoutRequeue
-                        };
+                            case IAckException _:
+                                return AckStrategies.Ack;
+                            case INackWithRequeueException _:
+                                return AckStrategies.NackWithRequeue;
+                            default:
+                                return AckStrategies.NackWithoutRequeue;
+                        }
                 }
             }
 

@@ -22,7 +22,7 @@ namespace EasyNetQ.HostedService
     /// <param name="c"/>
     /// <param name="t"/>
     /// <param name="logger"/>
-    public delegate void OnConnectedCallback(IAdvancedBus b, IRabbitMqConfig c, CancellationToken t, ILogger? logger);
+    public delegate void OnConnectedCallback(IAdvancedBus b, IRabbitMqConfig c, CancellationToken t, ILogger logger);
 
     /// <summary>
     /// A hosted service that accepts an EasyNetQ <see cref="IAdvancedBus"/> and uses it to either set up a consumer or
@@ -53,13 +53,13 @@ namespace EasyNetQ.HostedService
         private bool _isConsumer;
         private bool _isProperlyInitialized;
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
-        private ILogger? _logger;
+        private ILogger _logger;
 
         // ReSharper disable RedundantDefaultMemberInitializer
 
-        private IBusProxy _busProxy = null!;
-        private IRabbitMqConfig _rmqConfig = null!;
-        private List<OnConnectedCallback> _onConnected = null!;
+        private IBusProxy _busProxy = null;
+        private IRabbitMqConfig _rmqConfig = null;
+        private List<OnConnectedCallback> _onConnected = null;
 
         // ReSharper restore RedundantDefaultMemberInitializer
 
@@ -84,7 +84,7 @@ namespace EasyNetQ.HostedService
         /// <summary>
         /// The initialized <see cref="ILogger{T}"/> that is exposed to subclasses of <see cref="RabbitMqService{T}"/>.
         /// </summary>
-        protected ILogger? Logger => _logger;
+        protected ILogger Logger => _logger;
 
         /// <summary>
         /// This static method is used by <see cref="RabbitMqServiceBuilder{T}"/> to construct a singleton hosted service

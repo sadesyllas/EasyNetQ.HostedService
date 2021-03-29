@@ -195,7 +195,7 @@ namespace EasyNetQ.HostedService
             {
                 while (true)
                 {
-                    Message message = null!;
+                    Message message = null;
 
                     try
                     {
@@ -287,14 +287,14 @@ namespace EasyNetQ.HostedService
             _messageSemaphore.Release();
         }
 
-        private void ProducerLoopDiscardMessageAndContinue(Message? message)
+        private void ProducerLoopDiscardMessageAndContinue(Message message)
         {
             message?.TaskCompletionSource.SetResult(PublishResult.NotPublished);
 
             _messages.TryDequeue(out _);
         }
 
-        private string GetMessageInformation(Message? message) =>
+        private string GetMessageInformation(Message message) =>
             $"publisher confirms: {RabbitMqConfig.PublisherConfirms}, " +
             $"{message?.ToString() ?? "- no message information available -"}";
 
@@ -305,13 +305,13 @@ namespace EasyNetQ.HostedService
         {
             // ReSharper disable RedundantDefaultMemberInitializer
 
-            public string Exchange { get; set; } = null!;
-            public string RoutingKey { get; set; } = null!;
+            public string Exchange { get; set; } = null;
+            public string RoutingKey { get; set; } = null;
             public bool Mandatory { get; set; }
-            public byte[] Payload { get; set; } = null!;
-            public IDictionary<string, object> Headers { get; set; } = null!;
-            public Type Type { get; set; } = null!;
-            public TaskCompletionSource<PublishResult> TaskCompletionSource { get; set; } = null!;
+            public byte[] Payload { get; set; } = null;
+            public IDictionary<string, object> Headers { get; set; } = null;
+            public Type Type { get; set; } = null;
+            public TaskCompletionSource<PublishResult> TaskCompletionSource { get; set; } = null;
 
             // ReSharper restore RedundantDefaultMemberInitializer
 

@@ -12,7 +12,7 @@ namespace EasyNetQ.HostedService.Models
         /// <inheritdoc/>
         /// </summary>
         /// <param name="message"/>
-        public NackWithRequeueException(string? message = "") : base(message)
+        public NackWithRequeueException(string message = "") : base(message)
         {
         }
 
@@ -21,7 +21,7 @@ namespace EasyNetQ.HostedService.Models
         /// </summary>
         /// <param name="message"/>
         /// <param name="innerException"/>
-        public NackWithRequeueException(Exception? innerException, string? message = "") :
+        public NackWithRequeueException(Exception innerException, string message = "") :
             base(message, innerException)
         {
         }

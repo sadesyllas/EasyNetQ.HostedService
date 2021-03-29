@@ -85,15 +85,16 @@ namespace EasyNetQ.HostedService.Models
         /// <returns/>
         public object Clone()
         {
-            using var memoryStream = new MemoryStream();
+            using (var memoryStream = new MemoryStream())
+            {
+                var formatter = new BinaryFormatter();
 
-            var formatter = new BinaryFormatter();
+                formatter.Serialize(memoryStream, this);
 
-            formatter.Serialize(memoryStream, this);
+                memoryStream.Position = 0;
 
-            memoryStream.Position = 0;
-
-            return formatter.Deserialize(memoryStream);
+                return formatter.Deserialize(memoryStream);   
+            }
         }
     }
 }

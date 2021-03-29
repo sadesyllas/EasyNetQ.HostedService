@@ -27,7 +27,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
     {
         private bool _configUseStronglyTypedMessages;
         private bool _configUseCorrelationIds;
-        private IRabbitMqConfig? _configRabbitMqConfig;
+        private IRabbitMqConfig _configRabbitMqConfig;
         private readonly List<OnConnectedCallback> _configOnConnected = new List<OnConnectedCallback>();
 
         /// <summary>
@@ -149,7 +149,10 @@ namespace EasyNetQ.HostedService.DependencyInjection
                     $"{nameof(RabbitMqConsumer<T>)} or {nameof(RabbitMqProducer<T>)}.");
             }
 
-            _configRabbitMqConfig ??= new RabbitMqConfig();
+            if (_configRabbitMqConfig == null)
+            {
+                _configRabbitMqConfig = new RabbitMqConfig();
+            }
 
             var busProxy = serviceCollection
                 .Where(serviceDescriptor =>
@@ -184,7 +187,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
 
             Func<IServiceProvider, T> ServiceFactoryFactory()
             {
-                T service = null!;
+                T service = null;
                 var @lock = new object();
 
                 return serviceProvider =>
@@ -204,7 +207,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
 
                         // _configRabbitMqConfig must not be null here
                         service = RabbitMqService<T>.Create<T>(
-                            isConsumer, busProxy, _configRabbitMqConfig!, _configOnConnected, serviceProvider);
+                            isConsumer, busProxy, _configRabbitMqConfig, _configOnConnected, serviceProvider);
 
                         return service;
                     }

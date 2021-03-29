@@ -101,7 +101,7 @@ namespace EasyNetQ.HostedService
     /// </example>
     public abstract partial class RabbitMqConsumer<T> : RabbitMqService<T>
     {
-        private IDisposable? _startConsumingDisposable;
+        private IDisposable _startConsumingDisposable;
         private List<IDisposable> _startConsumingEventSubscriptions = new List<IDisposable>();
 
         /// <summary>
@@ -238,9 +238,9 @@ namespace EasyNetQ.HostedService
         }
 
         // TODO: THIS USE OF REFLECTION IS FRAGILE AND MUST BE RECONSIDERED
-        private static IModel? ExtractModelFromInternalConsumer(IConsumer consumer, ILogger? logger)
+        private static IModel ExtractModelFromInternalConsumer(IConsumer consumer, ILogger logger)
         {
-            IModel? model = null;
+            IModel model = null;
             var consumerType = consumer.GetType();
 
             var internalConsumersField =

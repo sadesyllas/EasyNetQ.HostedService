@@ -39,11 +39,16 @@ namespace EasyNetQ.HostedService.Internals
 
         public IMessage DeserializeMessage(MessageProperties properties, byte[] body)
         {
-            var message = _serializer.BytesToMessage(typeof(object), body) switch
+            string message;
+            switch (_serializer.BytesToMessage(typeof(object), body))
             {
-                string messageTmp => messageTmp,
-                var messageTmp => ((JObject) messageTmp).ToString()
-            };
+                case string messageTmp:
+                    message = messageTmp;
+                    break;
+                case var messageTmp:
+                    message = ((JObject) messageTmp).ToString();
+                    break;
+            }
 
             return MessageFactory.CreateInstance(typeof(string), message, properties);
         }
