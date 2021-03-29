@@ -87,6 +87,7 @@ namespace EasyNetQ.HostedService
         /// <param name="routingKey"/>
         /// <param name="payload"/>
         /// <param name="mandatory"/>
+        /// <param name="headers"/>
         /// <typeparam name="TMessage"/>
         /// <exception cref="ArgumentException"></exception>
         /// <returns>
@@ -97,7 +98,8 @@ namespace EasyNetQ.HostedService
             string exchange,
             string routingKey,
             TMessage payload,
-            bool mandatory = false)
+            bool mandatory = false,
+            IDictionary<string, object>? headers = null)
         {
             if (_cancellationToken.IsCancellationRequested)
             {
@@ -132,6 +134,7 @@ namespace EasyNetQ.HostedService
                 Payload = payloadBytes,
                 Type = typeof(TMessage),
                 TaskCompletionSource = taskCompletionSource,
+                Headers = headers ?? new Dictionary<string,object>()
             };
 
             EnqueueMessage(message);
