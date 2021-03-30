@@ -5,6 +5,7 @@ using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.Internals;
 using EasyNetQ.HostedService.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace EasyNetQ.HostedService.DependencyInjection
@@ -170,8 +171,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
                 var serviceProvider =
                     new DefaultServiceProviderFactory(new ServiceProviderOptions
                         {
-                            ValidateScopes = false,
-                            ValidateOnBuild = false
+                            ValidateScopes = false
                         })
                         .CreateBuilder(serviceCollection)
                         .BuildServiceProvider();
@@ -216,7 +216,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
 
             var serviceFactory = ServiceFactoryFactory();
 
-            serviceCollection.AddHostedService(serviceFactory);
+            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(serviceFactory));
 
             var serviceType = isConsumer ? typeof(RabbitMqConsumer<T>) : typeof(RabbitMqProducer<T>);
 
