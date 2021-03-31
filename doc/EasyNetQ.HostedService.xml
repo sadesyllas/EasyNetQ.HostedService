@@ -295,7 +295,7 @@
         </member>
         <member name="T:EasyNetQ.HostedService.Models.PublishResult">
             <summary>
-            The result of calling <see cref="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean)"/>.
+            The result of calling <see cref="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean,System.Collections.Generic.IDictionary{System.String,System.Object})"/>.
             </summary>
         </member>
         <member name="F:EasyNetQ.HostedService.Models.PublishResult.Published">
@@ -572,7 +572,7 @@
             </summary>
             <param name="cancellationToken"/>
         </member>
-        <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean)">
+        <member name="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean,System.Collections.Generic.IDictionary{System.String,System.Object})">
             <summary>
             Enqueues a message of type <c>TMessage</c> for publishing after turning it into a <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1.Message"/>.
             </summary>
@@ -580,6 +580,7 @@
             <param name="routingKey"/>
             <param name="payload"/>
             <param name="mandatory"/>
+            <param name="headers"></param>
             <typeparam name="TMessage"/>
             <exception cref="T:System.ArgumentException"></exception>
             <returns>
@@ -599,7 +600,7 @@
              <summary>
              Enqueues a message to be sent by the producer.
             
-             This method is called by <see cref="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean)"/>.
+             This method is called by <see cref="M:EasyNetQ.HostedService.RabbitMqProducer`1.PublishAsync``1(System.String,System.String,``0,System.Boolean,System.Collections.Generic.IDictionary{System.String,System.Object})"/>.
              </summary>
              <remarks>
              One can override this method to provide an alternative mechanism for enqueuing the messages.
