@@ -125,7 +125,8 @@
             // in the configuration callback of <see cref="M:Microsoft.Extensions.Hosting.IHostBuilder.ConfigureServices(System.Action{Microsoft.Extensions.Hosting.HostBuilderContext,Microsoft.Extensions.DependencyInjection.IServiceCollection})"/>
             new RabbitMqServiceBuilder&lt;MyRabbitMqService&gt;()
                 .WithRabbitMqConfig(rabbitMqConfig)
-                .Add(services)
+                .Build(services)
+                .Add(services, typeof(MyInjectedRabbitMqServiceType), typeof(MyInjectedRabbitMqServiceOptionalExtraType))
             </code>
             </example>
         </member>
@@ -163,22 +164,48 @@
              The callback is wrapped into a closure that makes sure that the callback is run only once.
              </summary>
         </member>
-        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.Add(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1.Build(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
              <summary>
-             Registers a subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> to be used with dependency injection.
-            
-             If it is a consumer with type <c>TConsumer</c>, it is registered both as
-             <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/> and <c>TConsumer</c>.
-            
-             If it is a producer with type <c>TProducer</c>, it is registered both as
-             <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/> and <c>TProducer</c>.
+             Builds a <see cref="T:Microsoft.Extensions.DependencyInjection.ServiceDescriptor"/>, describing a singleton <see cref="T:Microsoft.Extensions.Hosting.IHostedService"/>, to be used
+             with dependency injection.
              </summary>
              <remarks>
              It reuses an existing <see cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/> singleton, if one is found using the provided
              <see cref="P:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig.Id"/>.
             
-             If not, a new <see cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/> singleton is registered.
+             If not, a new <see cref="T:EasyNetQ.HostedService.Abstractions.IBusProxy"/> singleton is registered in the service factory wrapped by the
+             <see cref="T:Microsoft.Extensions.DependencyInjection.ServiceDescriptor"/>.
              </remarks>
+        </member>
+        <member name="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilderExtensions">
+            <summary>
+            Extension methods for <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilderExtensions.Add``1(System.Func{System.IServiceProvider,``0},Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Type,System.Type[])">
+             <summary>
+             Registers a subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> to be used with dependency injection.
+            
+             It registers the <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> both as <paramref name="type"/> and optionally, as
+             <paramref name="extraTypes"/>.
+             </summary>
+             <typeparam name="T">
+             The consumer or producer subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+             </typeparam>
+             <param name="serviceFactory">
+             The factory function that builds the <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+             </param>
+             <param name="serviceCollection">
+             The <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/> with which to register the <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+             </param>
+             <param name="type">
+             The type with witch to register the <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> in the
+             <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+             </param>
+             <param name="extraTypes">
+             Optional, extra types with witch to register the <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/> in the
+             <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+             </param>
         </member>
         <member name="T:EasyNetQ.HostedService.Internals.TypedMessageSerializationStrategy">
              <summary>

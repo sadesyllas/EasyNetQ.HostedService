@@ -77,7 +77,7 @@ namespace EasyNetQ.HostedService.Internals
             message = $"The {nameof(ConsumerErrorStrategy)} has already been disposed, while attempting to handle a " +
                       "consumer error, and the received message ({info}) will be requeued.";
 
-            _logger?.LogError(message, (object) context.ReceivedInfo);
+            _logger?.LogError(message, context.ReceivedInfo);
 
             return AckStrategies.NackWithRequeue;
         }

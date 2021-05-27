@@ -183,16 +183,20 @@ namespace EasyNetQ.HostedService.TestApp
                     // rabbitMqConfigConsumer.Id can be set through the relevant configuration section
                     // (default value: Anonymous)
 
-                    new RabbitMqServiceBuilder()
+                    new RabbitMqServiceBuilder<MyInjectableRabbitMqConsumer>()
                         .WithRabbitMqConfig(rabbitMqConfigConsumer)
-                        .Add<MyInjectableRabbitMqConsumer>(services);
+                        .Build(services)
+                        .Add(services, typeof(MyInjectedRabbitMqConsumerType),
+                            typeof(MyInjectedRabbitMqConsumerOptionalExtraType));
 
                     var rabbitMqConfigProducer = rabbitMqConfigConsumer.Copy;
                     rabbitMqConfigProducer.Id = "Some Other Id";
 
-                    new RabbitMqServiceBuilder()
+                    new RabbitMqServiceBuilder<MyInjectableRabbitMqProducer>()
                         .WithRabbitMqConfig(rabbitMqConfigProducer)
-                        .Add<MyInjectableRabbitMqProducer>(services);
+                        .Build(services)
+                        .Add(services, typeof(MyInjectedRabbitMqProducerType),
+                            typeof(typeof(MyInjectedRabbitMqProducerOptionalExtraType)));
 
                     services.AddHostedService<RabbitMqServiceTester>();
                 });

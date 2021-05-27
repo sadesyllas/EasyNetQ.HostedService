@@ -5,7 +5,6 @@ using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.Internals;
 using EasyNetQ.HostedService.Models;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace EasyNetQ.HostedService.DependencyInjection
@@ -21,7 +20,8 @@ namespace EasyNetQ.HostedService.DependencyInjection
     /// // in the configuration callback of <see cref="IHostBuilder.ConfigureServices"/>
     /// new RabbitMqServiceBuilder&lt;MyRabbitMqService&gt;()
     ///     .WithRabbitMqConfig(rabbitMqConfig)
-    ///     .Add(services)
+    ///     .Build(services)
+    ///     .Add(services, typeof(MyInjectedRabbitMqServiceType), typeof(MyInjectedRabbitMqServiceOptionalExtraType))
     /// </code>
     /// </example>
     public sealed class RabbitMqServiceBuilder<T> where T : RabbitMqService<T>
@@ -125,21 +125,17 @@ namespace EasyNetQ.HostedService.DependencyInjection
         }
 
         /// <summary>
-        /// Registers a subclass of <see cref="RabbitMqService{T}"/> to be used with dependency injection.
-        ///
-        /// If it is a consumer with type <c>TConsumer</c>, it is registered both as
-        /// <see cref="RabbitMqConsumer{TConsumer}"/> and <c>TConsumer</c>.
-        ///
-        /// If it is a producer with type <c>TProducer</c>, it is registered both as
-        /// <see cref="RabbitMqProducer{TProducer}"/> and <c>TProducer</c>.
+        /// Builds a <see cref="ServiceDescriptor"/>, describing a singleton <see cref="IHostedService"/>, to be used
+        /// with dependency injection.
         /// </summary>
         /// <remarks>
         /// It reuses an existing <see cref="IBusProxy"/> singleton, if one is found using the provided
         /// <see cref="IRabbitMqConfig.Id"/>.
         ///
-        /// If not, a new <see cref="IBusProxy"/> singleton is registered.
+        /// If not, a new <see cref="IBusProxy"/> singleton is registered in the service factory wrapped by the
+        /// <see cref="ServiceDescriptor"/>.
         /// </remarks>
-        public void Add(IServiceCollection serviceCollection)
+        public Func<IServiceProvider, T> Build(IServiceCollection serviceCollection)
         {
             var isConsumer = typeof(T).IsSubclassOf(typeof(RabbitMqConsumer<T>));
 
@@ -185,7 +181,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
             }
             // ReSharper restore HeuristicUnreachableCode
 
-            Func<IServiceProvider, T> ServiceFactoryFactory()
+            Func<IServiceProvider, T> BuildServiceFactoryFactory()
             {
                 T service = null;
                 var @lock = new object();
@@ -214,17 +210,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
                 };
             }
 
-            var serviceFactory = ServiceFactoryFactory();
-
-            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(serviceFactory));
-
-            var serviceType = isConsumer ? typeof(RabbitMqConsumer<T>) : typeof(RabbitMqProducer<T>);
-
-            // enable injection as RabbitMqConsumer<MyConsumerType> or RabbitMqProducer<MyProducerType>
-            serviceCollection.AddSingleton(serviceType, serviceFactory);
-
-            // enable injection as MyConsumerType or MyProducerType
-            serviceCollection.AddSingleton(serviceFactory);
+            return BuildServiceFactoryFactory();
         }
     }
 }
