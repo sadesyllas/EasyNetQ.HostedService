@@ -194,7 +194,7 @@ namespace EasyNetQ.HostedService
         }
 
         private void StartProducerLoop(CancellationToken cancellationToken) =>
-            new Thread(() =>
+            new Thread(async () =>
             {
                 while (true)
                 {
@@ -231,6 +231,12 @@ namespace EasyNetQ.HostedService
                                 $"({GetMessageInformation(message)}) with routing key {message.RoutingKey} and payload " +
                                 $"{Encoding.UTF8.GetString(message.Payload)}.");
 #endif
+
+                            if (OutgoingMessageInterceptor != null)
+                            {
+                                await OutgoingMessageInterceptor.InterceptMessage(message.Payload, message.Type,
+                                    message.Headers, cancellationToken);
+                            }
 
                             Bus.Publish(
                                 exchange,

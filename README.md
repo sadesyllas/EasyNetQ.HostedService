@@ -204,6 +204,16 @@ namespace EasyNetQ.HostedService.TestApp
 }
 ```
 
+## Message interception
+
+To intercept messages, register an `IIncomingMessageInterceptor` or an 
+`IOutgoingMessageInterceptor` with dependency injection, to intercept
+incoming and outgoing messages, respectively.
+
+To differentiate between message interceptor implementations, eg, per
+specific consumer or producer, instead use the `IIncomingMessageInterceptor<T>` and
+`IOutgoingMessageInterceptor<T>` interfaces.
+
 ## Verification of NuGet packages
 
 To verify the integrity of the NuGet packages, checkout the git tag matching

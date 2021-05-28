@@ -51,6 +51,8 @@ namespace EasyNetQ.HostedService
     public abstract class RabbitMqService<T> : IHostedService
     {
         private bool _isConsumer;
+        private protected IIncomingMessageInterceptor IncomingMessageInterceptor;
+        private protected IOutgoingMessageInterceptor OutgoingMessageInterceptor;
         private bool _isProperlyInitialized;
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
         private ILogger _logger;
@@ -140,6 +142,15 @@ namespace EasyNetQ.HostedService
             }
 
             service._isConsumer = isConsumer;
+
+            service.IncomingMessageInterceptor =
+                serviceProvider.GetService<IIncomingMessageInterceptor<T>>() ??
+                serviceProvider.GetService<IIncomingMessageInterceptor>();
+
+            service.OutgoingMessageInterceptor =
+                serviceProvider.GetService<IOutgoingMessageInterceptor<T>>() ??
+                serviceProvider.GetService<IOutgoingMessageInterceptor>();
+
             service._busProxy = busProxy;
             service._rmqConfig = rmqConfig;
             service._onConnected = onConnected;

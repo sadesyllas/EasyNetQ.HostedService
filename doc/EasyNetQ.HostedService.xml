@@ -25,6 +25,38 @@
             An initialized <see cref="T:EasyNetQ.IAdvancedBus"/> instance.
             </summary>
         </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IIncomingMessageInterceptor">
+             <summary>
+             A message interceptor for incoming messages.
+            
+             Messages are intercepted before they reach the registered message handler.
+            
+             This mechanism can be used, eg, to read headers in incoming messages, in a transparent manner.
+             </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Abstractions.IIncomingMessageInterceptor.InterceptMessage``1(EasyNetQ.IMessage{``0},EasyNetQ.MessageReceivedInfo,System.Threading.CancellationToken)">
+            <summary>
+            Intercepts incoming messages before they reach the registered message handler.
+            </summary>
+            <param name="message"></param>
+            <param name="messageReceivedInfo"></param>
+            <param name="cancellationToken"></param>
+            <typeparam name="T">
+            The type of the received message.
+            </typeparam>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IIncomingMessageInterceptor`1">
+            <inheritdoc cref="T:EasyNetQ.HostedService.Abstractions.IIncomingMessageInterceptor"/>
+            <typeparam name="T">
+            The subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/> for which the <see cref="T:EasyNetQ.HostedService.Abstractions.IIncomingMessageInterceptor`1"/>
+            has being registered.
+            </typeparam>
+            <remarks>
+            Type parameter <typeparamref name="T"/> can be used to differentiate between the various
+            <see cref="T:EasyNetQ.HostedService.Abstractions.IIncomingMessageInterceptor`1"/> implementations that have been registered with dependency
+            injection.
+            </remarks>
+        </member>
         <member name="T:EasyNetQ.HostedService.Abstractions.INackWithoutRequeueException">
             <summary>
             When thrown from a consumer's handler, a NACK will be sent for the message to the RabbitMQ server but the
@@ -36,6 +68,36 @@
             When thrown from a consumer's handler, a NACK will be sent for the message to the RabbitMQ server and the
             message will be requeued.
             </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IOutgoingMessageInterceptor">
+             <summary>
+             A message interceptor for outgoing messages.
+            
+             Messages are intercepted before they are sent to the RabbitMQ server.
+            
+             This mechanism can be used, eg, to inject headers to outgoing messages, in a transparent manner.
+             </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Abstractions.IOutgoingMessageInterceptor.InterceptMessage(System.Byte[],System.Type,System.Collections.Generic.IDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Intercepts outgoing messages before they are sent to the RabbitMQ server.
+            </summary>
+            <param name="message"></param>
+            <param name="type"></param>
+            <param name="headers"></param>
+            <param name="cancellationToken"></param>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Abstractions.IOutgoingMessageInterceptor`1">
+            <inheritdoc cref="T:EasyNetQ.HostedService.Abstractions.IOutgoingMessageInterceptor"/>
+            <typeparam name="T">
+            The subclass of <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/> for which the <see cref="T:EasyNetQ.HostedService.Abstractions.IOutgoingMessageInterceptor`1"/>
+            has being registered.
+            </typeparam>
+            <remarks>
+            Type parameter <typeparamref name="T"/> can be used to differentiate between the various
+            <see cref="T:EasyNetQ.HostedService.Abstractions.IOutgoingMessageInterceptor`1"/> implementations that have been registered with dependency
+            injection.
+            </remarks>
         </member>
         <member name="T:EasyNetQ.HostedService.Abstractions.IRabbitMqConfig">
             <summary>

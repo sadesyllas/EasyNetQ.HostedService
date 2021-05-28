@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using EasyNetQ.Consumer;
 using EasyNetQ.Events;
 using EasyNetQ.HostedService.DependencyInjection;
+using EasyNetQ.HostedService.Internals;
 using EasyNetQ.HostedService.Models;
 using EasyNetQ.Internals;
 using Microsoft.Extensions.Logging;
@@ -212,7 +213,7 @@ namespace EasyNetQ.HostedService
             {
                 try
                 {
-                    RegisterMessageHandlers(handlers);
+                    RegisterMessageHandlers(new HandlerRegistrar(handlers, IncomingMessageInterceptor));
                 }
                 catch (Exception exception)
                 {
