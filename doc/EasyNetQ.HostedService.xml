@@ -750,7 +750,7 @@
             <param name="b"/>
             <param name="c"/>
             <param name="t"/>
-            <param name="logger"/>
+            <param name="logWriter"/>
         </member>
         <member name="T:EasyNetQ.HostedService.RabbitMqService`1">
              <summary>
@@ -790,9 +790,14 @@
             <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
             </summary>
         </member>
+        <member name="P:EasyNetQ.HostedService.RabbitMqService`1.ActivitySource">
+            <summary>
+            The initialized <see cref="P:EasyNetQ.HostedService.RabbitMqService`1.ActivitySource"/> that is exposed to subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            </summary>
+        </member>
         <member name="P:EasyNetQ.HostedService.RabbitMqService`1.Logger">
             <summary>
-            The initialized <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> that is exposed to subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
+            The initialized <see cref="T:EasyNetQ.HostedService.Tracing.TraceLogWriter"/> that is exposed to subclasses of <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>.
             </summary>
         </member>
         <member name="M:EasyNetQ.HostedService.RabbitMqService`1.Create``1(System.Boolean,EasyNetQ.HostedService.Abstractions.IBusProxy,EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Collections.Generic.List{EasyNetQ.HostedService.OnConnectedCallback},System.IServiceProvider)">
@@ -903,6 +908,251 @@
             Adds a disposable into a common list of disposables in order to dispose of it on service termination.
             </summary>
             <param name="disposable"/>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceActivityListener">
+            <summary>
+            A convenience type to help register a handler for <see cref="T:System.Diagnostics.Activity"/> start/end events, emitted by the
+            library.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceActivityListener.Subscribe``1(System.Action{System.Diagnostics.Activity},System.Action{System.Diagnostics.Activity})">
+            <summary>
+            Subscribes handlers for the <see cref="T:System.Diagnostics.Activity"/> start/end events, emitted
+            by an <see cref="T:System.Diagnostics.ActivitySource"/>.
+            </summary>
+            <param name="onActivityStarted"></param>
+            <param name="onActivityStopped"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceActivityListener.SubscribeToAll(System.Action{System.Diagnostics.Activity},System.Action{System.Diagnostics.Activity})">
+             <summary>
+             Subscribes handlers for the <see cref="T:System.Diagnostics.Activity"/> start/end events, emitted
+             by an <see cref="T:System.Diagnostics.ActivitySource"/>.
+            
+             This variant subscribes to all <see cref="T:System.Diagnostics.Activity"/> start/end events, irrespective from the actual source
+             within the library.
+             </summary>
+             <param name="onActivityStarted"></param>
+             <param name="onActivityStopped"></param>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceActivityName">
+            <summary>
+            The keys that describe the activity names being emitted through instances of <see cref="T:System.Diagnostics.ActivitySource"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityName.Consume">
+            <summary>
+            The key used when starting a new <see cref="T:System.Diagnostics.Activity"/> in a <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityName.Publish">
+            <summary>
+            The key used when starting a new <see cref="T:System.Diagnostics.Activity"/> in a <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceActivityTagName">
+            <summary>
+            The keys that describe the activity tag names being emitted through instances of <see cref="T:System.Diagnostics.ActivitySource"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.Exchange">
+            <summary>
+            The tag name for the exchange where a RabbitMQ message is being published.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.RoutingKey">
+            <summary>
+            The tag name for the rouging key used for a RabbitMQ message that is being published.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.Mandatory">
+            <summary>
+            The tag name for the <c>mandatory</c> boolean value, used when a RabbitMQ message is being published.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.Headers">
+            <summary>
+            The tag name for the headers of a RabbitMQ message that is being consumed or published.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.CorrelationId">
+            <summary>
+            The tag name for the correlation id of a RabbitMQ message that is being consumed.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.DeliveryTag">
+            <summary>
+            The tag name for the delivery tag of a RabbitMQ message that is being consumed.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.Redelivered">
+            <summary>
+            The tag name for the <c>redelivered</c> flag of a RabbitMQ message that is being consumed.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceActivityTagName.Exception">
+            <summary>
+            The tag name used when an exception occurs in an <see cref="T:System.Diagnostics.Activity"/>, in a
+            <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceEventName">
+            <summary>
+            The keys that describe what kind of event is being emitted through instances of <see cref="T:System.Diagnostics.DiagnosticSource"/>
+            and <see cref="T:System.Diagnostics.ActivitySource"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceEventName.Log">
+            <summary>
+            The key for all emitted logs, through the emitting <see cref="T:System.Diagnostics.DiagnosticSource"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceEventName.Cancelled">
+            <summary>
+            The key used when cancelling an <see cref="T:System.Diagnostics.Activity"/> in a <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceEventName.Exception">
+            <summary>
+            The key used when an exception occurs in an <see cref="T:System.Diagnostics.Activity"/>, in a <see cref="T:EasyNetQ.HostedService.RabbitMqProducer`1"/>.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceLog">
+            <summary>
+            The type of log emitted from an instance of <see cref="T:System.Diagnostics.DiagnosticSource"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLog.#ctor(Microsoft.Extensions.Logging.LogLevel,System.String,System.Exception)">
+            <summary>
+            Creates a new <see cref="T:EasyNetQ.HostedService.Tracing.TraceLog"/>.
+            </summary>
+            <param name="logLevel"></param>
+            <param name="message"></param>
+            <param name="exception"></param>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Tracing.TraceLog.LogLevel">
+            <summary>
+            The log's <see cref="P:EasyNetQ.HostedService.Tracing.TraceLog.LogLevel"/>.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Tracing.TraceLog.Message">
+            <summary>
+            The log's message.
+            </summary>
+        </member>
+        <member name="P:EasyNetQ.HostedService.Tracing.TraceLog.Exception">
+            <summary>
+            The log's <see cref="P:EasyNetQ.HostedService.Tracing.TraceLog.Exception"/>, if it's an error.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceLogListener">
+            <summary>
+            A convenience type to help register a handler for log messages, emitted by the library.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogListener.Subscribe``1(System.Action{EasyNetQ.HostedService.Tracing.TraceLog},Microsoft.Extensions.Logging.LogLevel)">
+            <summary>
+            Subscribes an <see cref="T:System.Action`1"/> as a handler for the log events, emitted
+            by a <see cref="T:System.Diagnostics.DiagnosticSource"/>.
+            </summary>
+            <param name="handler">
+            The handler for the log events, emitted by a <see cref="T:System.Diagnostics.DiagnosticSource"/>.
+            </param>
+            <param name="minLogLevel"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogListener.SubscribeToAll(System.Action{EasyNetQ.HostedService.Tracing.TraceLog},Microsoft.Extensions.Logging.LogLevel)">
+             <summary>
+             Subscribes an <see cref="T:System.Action`1"/> as a handler for the log events, emitted
+             by a <see cref="T:System.Diagnostics.DiagnosticSource"/>.
+            
+             This variant subscribes to all log messages, irrespective from the actual source within the library.
+             </summary>
+             <param name="handler">
+             The handler for the log events, emitted by a <see cref="T:System.Diagnostics.DiagnosticSource"/>.
+             </param>
+             <param name="minLogLevel"></param>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceLogWriter">
+            <summary>
+            The class that emits instances of <see cref="T:EasyNetQ.HostedService.Tracing.TraceLog"/>, through an instance of <see cref="T:System.Diagnostics.DiagnosticSource"/>.
+            </summary>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogWriter.#ctor(System.Diagnostics.DiagnosticSource)">
+            <summary>
+            Creates a new <see cref="T:EasyNetQ.HostedService.Tracing.TraceLogWriter"/>.
+            </summary>
+            <param name="diagnosticSource"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogWriter.LogTrace(System.String)">
+            <summary>
+            Logs a message using the Trace <see cref="T:Microsoft.Extensions.Logging.LogLevel"/>.
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogWriter.LogDebug(System.String)">
+            <summary>
+            Logs a message using the Debug <see cref="T:Microsoft.Extensions.Logging.LogLevel"/>.
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogWriter.LogInformation(System.String)">
+            <summary>
+            Logs a message using the Information <see cref="T:Microsoft.Extensions.Logging.LogLevel"/>.
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogWriter.LogError(System.String,System.Exception)">
+            <summary>
+            Logs a message using the Error <see cref="T:Microsoft.Extensions.Logging.LogLevel"/>.
+            </summary>
+            <param name="message"></param>
+            <param name="exception"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogWriter.LogCritical(System.String,System.Exception)">
+            <summary>
+            Logs a message using the Critical <see cref="T:Microsoft.Extensions.Logging.LogLevel"/>.
+            </summary>
+            <param name="message"></param>
+            <param name="exception"></param>
+        </member>
+        <member name="M:EasyNetQ.HostedService.Tracing.TraceLogWriter.LogTrace(Microsoft.Extensions.Logging.LogLevel,System.String,System.Exception)">
+             <summary>
+             This is the core logging method, used by the public one's
+            
+             It checks whether there are any listeners for the corresponding <see cref="T:Microsoft.Extensions.Logging.LogLevel"/> and if there are,
+             it emits a <see cref="T:EasyNetQ.HostedService.Tracing.TraceLog"/> instance.
+             </summary>
+             <param name="logLevel"></param>
+             <param name="message"></param>
+             <param name="exception"></param>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceSourceName`1">
+            <summary>
+            Holds the keys for creating instances of <see cref="T:System.Diagnostics.DiagnosticSource"/> and <see cref="T:System.Diagnostics.ActivitySource"/>.
+            </summary>
+            <typeparam name="T">
+            The type of the derived <see cref="T:EasyNetQ.HostedService.RabbitMqService`1"/>, which implements a consumer or a producer.
+            </typeparam>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceSourceName`1.Log">
+            <summary>
+            The key for a <see cref="T:System.Diagnostics.DiagnosticSource"/>, through which logs are emitted.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceSourceName`1.Activity">
+            <summary>
+            The key for an <see cref="T:System.Diagnostics.ActivitySource"/>, through which consumer and producers emit events on receiving
+            and publishing a message, respectively.
+            </summary>
+        </member>
+        <member name="T:EasyNetQ.HostedService.Tracing.TraceSourceName">
+            <summary>
+            Holds the key prefix for all keys in <see cref="T:EasyNetQ.HostedService.Tracing.TraceSourceName`1"/>.
+            </summary>
+        </member>
+        <member name="F:EasyNetQ.HostedService.Tracing.TraceSourceName.KeyPrefix">
+            <summary>
+            The key prefix for all keys in <see cref="T:EasyNetQ.HostedService.Tracing.TraceSourceName`1"/>.
+            </summary>
         </member>
     </members>
 </doc>

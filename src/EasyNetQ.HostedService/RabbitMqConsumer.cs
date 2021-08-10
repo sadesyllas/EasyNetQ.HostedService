@@ -10,8 +10,8 @@ using EasyNetQ.Events;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
 using EasyNetQ.HostedService.Models;
+using EasyNetQ.HostedService.Tracing;
 using EasyNetQ.Internals;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 
@@ -102,8 +102,7 @@ namespace EasyNetQ.HostedService
     /// </example>
     public abstract partial class RabbitMqConsumer<T> : RabbitMqService<T>
     {
-        private IDisposable _startConsumingDisposable;
-        private List<IDisposable> _startConsumingEventSubscriptions = new List<IDisposable>();
+        private readonly List<IDisposable> _startConsumingEventSubscriptions = new List<IDisposable>();
 
         /// <summary>
         /// <inheritdoc/>
@@ -148,9 +147,13 @@ namespace EasyNetQ.HostedService
         {
             var model = ExtractModelFromInternalConsumer(@event.Consumer, Logger);
 
-            Logger?.LogCritical(
-                $"Failed to consume from {@event.Queue.Name} ({@event.Queue.Arguments}) with " +
-                $"code {model?.CloseReason.ReplyCode} and reason {model?.CloseReason.ReplyText}.");
+            // If `model` is `null`, then there is no open channel with RabbitMQ.
+            if (model != null)
+            {
+                Logger?.LogCritical(
+                    $"Failed to consume from {@event.Queue.Name} ({@event.Queue.Arguments}) with " +
+                    $"code {model.CloseReason.ReplyCode} and reason {model.CloseReason.ReplyText}.");
+            }
         }
 
         /// <summary>
@@ -163,27 +166,7 @@ namespace EasyNetQ.HostedService
 
             SubscribeToStartConsumingEvent<StartConsumingFailedEvent>(OnStartConsumingEvent);
 
-            _startConsumingDisposable = StartConsuming(cancellationToken);
-
-            AddDisposable(_startConsumingDisposable);
-
-            Bus.Connected += (sender, args) =>
-            {
-                try
-                {
-                    _startConsumingDisposable?.Dispose();
-                }
-                catch (Exception exception)
-                {
-                    Logger?.LogError(
-                        $"Could not dispose of {nameof(_startConsumingDisposable)} in {nameof(RabbitMqConsumer<T>)}: " +
-                        $"{exception.Message}\n{exception.StackTrace}");
-                }
-
-                _startConsumingDisposable = StartConsuming(cancellationToken);
-
-                AddDisposable(_startConsumingDisposable);
-            };
+            AddDisposable(StartConsuming(cancellationToken));
         }
 
         private void SubscribeToStartConsumingEvent<TEvent>(Action<TEvent> eventHandler)
@@ -213,7 +196,7 @@ namespace EasyNetQ.HostedService
             {
                 try
                 {
-                    RegisterMessageHandlers(new HandlerRegistrar(handlers, IncomingMessageInterceptor));
+                    RegisterMessageHandlers(new HandlerRegistrar(handlers, IncomingMessageInterceptor, ActivitySource));
                 }
                 catch (Exception exception)
                 {
@@ -239,7 +222,7 @@ namespace EasyNetQ.HostedService
         }
 
         // TODO: THIS USE OF REFLECTION IS FRAGILE AND MUST BE RECONSIDERED
-        private static IModel ExtractModelFromInternalConsumer(IConsumer consumer, ILogger logger)
+        private static IModel ExtractModelFromInternalConsumer(IConsumer consumer, TraceLogWriter logger)
         {
             IModel model = null;
             var consumerType = consumer.GetType();

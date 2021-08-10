@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -8,8 +9,8 @@ using System.Threading.Tasks;
 using EasyNetQ.Consumer;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Models;
+using EasyNetQ.HostedService.Tracing;
 using EasyNetQ.Topology;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RabbitMQ.Client.Exceptions;
 
@@ -101,24 +102,42 @@ namespace EasyNetQ.HostedService
             bool mandatory = false,
             IDictionary<string, object> headers = null)
         {
+            var tracingActivity = ActivitySource.StartActivity(TraceActivityName.Publish, ActivityKind.Producer);
+
             if (_cancellationToken.IsCancellationRequested)
             {
+                if (tracingActivity != null)
+                {
+                    tracingActivity.AddEvent(new ActivityEvent(TraceEventName.Cancelled));
+
+                    tracingActivity.Dispose();
+                }
+
                 return Task.FromResult(PublishResult.NotPublished);
             }
 
             if (exchange == null)
             {
-                throw new ArgumentException("The exchange must not be null.");
+                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers);
+
+                DisposeActivityAndThrowException(tracingActivity,
+                    new ArgumentException("The exchange must not be null."));
             }
 
             if (routingKey == null)
             {
-                throw new ArgumentException("The routing key must not be null.");
+                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers);
+
+                DisposeActivityAndThrowException(tracingActivity,
+                    new ArgumentException("The routing key must not be null."));
             }
 
             if (payload == null)
             {
-                throw new ArgumentException("The payload must not be null.");
+                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers);
+
+                DisposeActivityAndThrowException(tracingActivity,
+                    new ArgumentException("The payload must not be null."));
             }
 
             var payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
@@ -135,6 +154,7 @@ namespace EasyNetQ.HostedService
                 Type = typeof(TMessage),
                 Headers = headers,
                 TaskCompletionSource = taskCompletionSource,
+                TracingActivity = tracingActivity
             };
 
             EnqueueMessage(message);
@@ -199,6 +219,7 @@ namespace EasyNetQ.HostedService
                 while (true)
                 {
                     Message message = null;
+                    var success = false;
 
                     try
                     {
@@ -226,7 +247,7 @@ namespace EasyNetQ.HostedService
                             };
 
 #if LOG_DEBUG_RABBITMQ_PRODUCER_PUBLISHED_MESSAGES
-                            Logger?.LogDebug(
+                            Logger.LogDebug(
                                 $"Publishing message to exchange {message.Exchange} " +
                                 $"({GetMessageInformation(message)}) with routing key {message.RoutingKey} and payload " +
                                 $"{Encoding.UTF8.GetString(message.Payload)}.");
@@ -237,6 +258,9 @@ namespace EasyNetQ.HostedService
                                 await OutgoingMessageInterceptor.InterceptMessage(message.Payload, message.Type,
                                     message.Headers, cancellationToken);
                             }
+
+                            AdornActivityWithTags(message.TracingActivity, message.Exchange, message.RoutingKey,
+                                message.Mandatory, message.Headers);
 
                             Bus.Publish(
                                 exchange,
@@ -249,6 +273,8 @@ namespace EasyNetQ.HostedService
                             message.TaskCompletionSource.SetResult(PublishResult.Published);
 
                             _messages.TryDequeue(out _);
+
+                            success = true;
                         }
                     }
                     catch (OperationCanceledException)
@@ -257,47 +283,52 @@ namespace EasyNetQ.HostedService
 
                         return;
                     }
-                    catch (TimeoutException)
+                    catch (TimeoutException exception)
                     {
-                        Logger?.LogError(
-                            $"Timeout occured while trying to publish with configuration " +
-                            $"{RabbitMqConfig.Id} ({GetMessageInformation(message)})");
+                        var error =
+                            "Timeout occured while trying to publish with configuration " +
+                            $"{RabbitMqConfig.Id} ({GetMessageInformation(message)})";
 
-                        ProducerLoopWaitAndContinue(cancellationToken);
+                        FailAndDiscardMessage(message, new Exception(error, exception));
                     }
                     catch (AlreadyClosedException exception)
                     {
-                        Logger?.LogError(
+                        var error =
                             $"AMQP error in producer loop: {exception.Message}\n{exception.StackTrace}\n" +
-                            $"({GetMessageInformation(message)})");
+                            $"({GetMessageInformation(message)})";
 
-                        // 404 - NOT FOUND means that the message cannot be processed at all at this point and it's
-                        // best to notify the library's client and discard it
-                        if (exception.ShutdownReason?.ReplyCode == 404)
-                        {
-                            ProducerLoopDiscardMessageAndContinue(message);
-                        }
+                        FailAndDiscardMessage(message, new Exception(error, exception));
                     }
                     catch (Exception exception)
                     {
-                        Logger?.LogCritical(
+                        var error =
                             $"Critical error in producer loop: {exception.Message}\n{exception.StackTrace}\n" +
-                            $"({GetMessageInformation(message)})");
+                            $"({GetMessageInformation(message)})";
 
-                        ProducerLoopWaitAndContinue(cancellationToken);
+                        FailAndDiscardMessage(message, new Exception(error, exception));
+                    }
+                    finally
+                    {
+                        if (success)
+                        {
+                            message.TracingActivity?.Dispose();
+                        }
                     }
                 }
             }).Start();
 
-        private void ProducerLoopWaitAndContinue(CancellationToken cancellationToken)
+        private void FailAndDiscardMessage(Message message, Exception exception)
         {
-            Task.Delay(RabbitMqConfig.PublisherLoopErrorBackOffMilliseconds, cancellationToken).Wait(cancellationToken);
+            if (message?.TracingActivity != null)
+            {
+                message.TracingActivity.AddEvent(new ActivityEvent(TraceEventName.Exception,
+                    tags: new ActivityTagsCollection(new[]
+                        {new KeyValuePair<string, object>(TraceActivityTagName.Exception, exception)})));
 
-            _messageSemaphore.Release();
-        }
+                message.TracingActivity.Dispose();
+            }
 
-        private void ProducerLoopDiscardMessageAndContinue(Message message)
-        {
+            message?.TaskCompletionSource.SetException(exception);
             message?.TaskCompletionSource.SetResult(PublishResult.NotPublished);
 
             _messages.TryDequeue(out _);
@@ -321,11 +352,45 @@ namespace EasyNetQ.HostedService
             public IDictionary<string, object> Headers { get; set; } = null;
             public Type Type { get; set; } = null;
             public TaskCompletionSource<PublishResult> TaskCompletionSource { get; set; } = null;
+            public Activity TracingActivity { get; set; }
 
             // ReSharper restore RedundantDefaultMemberInitializer
 
             public override string ToString() =>
                 $"exchange: {Exchange}, routing key: {RoutingKey}, publisher confirms: mandatory: {Mandatory}";
+        }
+
+        private void AdornActivityWithTags(Activity activity, string exchange, string routingKey, bool mandatory,
+            IDictionary<string, object> headers)
+        {
+            if (activity != null)
+            {
+                activity
+                    .AddTag(TraceActivityTagName.Exchange, exchange)
+                    .AddTag(TraceActivityTagName.RoutingKey, routingKey)
+                    .AddTag(TraceActivityTagName.Mandatory, mandatory);
+
+                if (headers != null)
+                {
+                    activity.AddTag(TraceActivityTagName.Headers, headers);
+                }
+            }
+        }
+
+        private void DisposeActivityAndThrowException(Activity activity, Exception exception)
+        {
+            if (activity == null)
+            {
+                throw exception;
+            }
+
+            activity.AddEvent(new ActivityEvent(TraceEventName.Exception,
+                tags: new ActivityTagsCollection(
+                    new[] {new KeyValuePair<string, object>(TraceActivityTagName.Exception, exception)})));
+
+            activity.Dispose();
+
+            throw exception;
         }
     }
 
