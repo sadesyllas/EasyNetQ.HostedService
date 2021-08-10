@@ -32,6 +32,8 @@ namespace EasyNetQ.HostedService.TestApp
                 {
                     TestQueueName = hostContext.Configuration.GetValue<string>("RabbitMQ:QueueName");
 
+                    services.AddHostedService<TraceTestListener>();
+
                     var rabbitMqConfigConsumer =
                         hostContext.Configuration.GetSection("RabbitMQ:Test").Get<RabbitMqConfig>();
 

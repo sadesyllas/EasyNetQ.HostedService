@@ -8,7 +8,6 @@ using EasyNetQ.Events;
 using EasyNetQ.HostedService.Models;
 using EasyNetQ.Topology;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace EasyNetQ.HostedService.TestApp
