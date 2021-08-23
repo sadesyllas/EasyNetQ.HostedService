@@ -8,5 +8,7 @@ namespace EasyNetQ.HostedService.Internals
         public string TypeHeader { get; set; }
         
         public Dictionary<string, Type> TypeMappings { get; set; }
+
+        public bool ShouldRequeue { get; set; } = true;
     }
 }

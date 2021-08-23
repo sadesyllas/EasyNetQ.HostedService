@@ -56,7 +56,12 @@ namespace EasyNetQ.HostedService.Internals
 
             if (!typeHeaderValueExists)
             {
-                throw new UnhandledHeaderTypeException("Type header not present on message");
+                if (_headerTypeSerializationConfiguration.ShouldRequeue)
+                {
+                    throw new UnhandledHeaderTypeExceptionWithRequeue("Type header not present on message");
+                }
+                
+                throw new UnhandledHeaderTypeExceptionWithoutRequeue("Type header not present on message");
             }
 
             var typeExistsInMapping = _headerTypeSerializationConfiguration.TypeMappings.TryGetValue(
@@ -65,7 +70,12 @@ namespace EasyNetQ.HostedService.Internals
 
             if (!typeExistsInMapping)
             {
-                throw new UnhandledHeaderTypeException("Message type from header not found in mapping");
+                if (_headerTypeSerializationConfiguration.ShouldRequeue)
+                {
+                    throw new UnhandledHeaderTypeExceptionWithRequeue("Message type from header not found in mapping");
+                }
+                
+                throw new UnhandledHeaderTypeExceptionWithoutRequeue("Message type from header not found in mapping");
             }
             
             var message = _serializer.BytesToMessage(messageType, body);
