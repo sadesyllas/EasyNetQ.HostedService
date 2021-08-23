@@ -26,8 +26,9 @@ namespace EasyNetQ.HostedService.DependencyInjection
     /// </example>
     public sealed class RabbitMqServiceBuilder<T> where T : RabbitMqService<T>
     {
-        private bool _configUseStronglyTypedMessages;
+        private MessageSerializationStrategy _configUseStronglyTypedMessages = MessageSerializationStrategy.UnTyped;
         private bool _configUseCorrelationIds;
+        private HeaderTypeSerializationConfiguration _headerTypeSerializationConfiguration;
         private IRabbitMqConfig _configRabbitMqConfig;
         private readonly List<OnConnectedCallback> _configOnConnected = new List<OnConnectedCallback>();
 
@@ -45,10 +46,17 @@ namespace EasyNetQ.HostedService.DependencyInjection
         {
             get
             {
-                _configUseStronglyTypedMessages = true;
+                _configUseStronglyTypedMessages = MessageSerializationStrategy.Typed;
 
                 return this;
             }
+        }
+        
+        public RabbitMqServiceBuilder<T> WithHeaderTypedMessages(HeaderTypeSerializationConfiguration configuration)
+        {
+            _configUseStronglyTypedMessages = MessageSerializationStrategy.Header;
+            _headerTypeSerializationConfiguration = configuration;
+            return this;
         }
 
         /// <summary>
@@ -173,7 +181,7 @@ namespace EasyNetQ.HostedService.DependencyInjection
                         .BuildServiceProvider();
 
                 var bus = RabbitMqService<T>.CreateLazyBus(
-                    _configRabbitMqConfig, _configUseStronglyTypedMessages, _configUseCorrelationIds, serviceProvider);
+                    _configRabbitMqConfig, _configUseStronglyTypedMessages, _configUseCorrelationIds, _headerTypeSerializationConfiguration, serviceProvider);
 
                 busProxy = new BusProxy(_configRabbitMqConfig.Id, bus);
 

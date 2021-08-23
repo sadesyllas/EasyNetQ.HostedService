@@ -176,14 +176,15 @@ namespace EasyNetQ.HostedService
         /// <see cref="RabbitMqServiceBuilder{T}"/>.
         /// </summary>
         /// <param name="rmqConfig"/>
-        /// <param name="useStronglyTypedMessages"/>
+        /// <param name="messageSerializationStrategy"/>
         /// <param name="useCorrelationIds"/>
         /// <param name="serviceProvider"/>
         /// <returns/>
         public static Lazy<IAdvancedBus> CreateLazyBus(
             IRabbitMqConfig rmqConfig,
-            bool useStronglyTypedMessages,
+            MessageSerializationStrategy messageSerializationStrategy,
             bool useCorrelationIds,
+            HeaderTypeSerializationConfiguration headerTypeSerializationConfiguration,
             IServiceProvider serviceProvider) =>
             new Lazy<IAdvancedBus>(() => RabbitHutch.CreateBus(new ConnectionConfiguration
             {
@@ -215,16 +216,31 @@ namespace EasyNetQ.HostedService
                     var serializer = serviceResolver.Resolve<ISerializer>();
                     var correlationIdGenerationStrategy = serviceResolver.Resolve<ICorrelationIdGenerationStrategy>();
 
-                    if (useStronglyTypedMessages)
+                    switch (messageSerializationStrategy)
                     {
-                        var typeNameSerializer = serviceResolver.Resolve<ITypeNameSerializer>();
+                        case MessageSerializationStrategy.Typed:
+                        {
+                            var typeNameSerializer = serviceResolver.Resolve<ITypeNameSerializer>();
 
-                        return new TypedMessageSerializationStrategy(
-                            useCorrelationIds, typeNameSerializer, serializer, correlationIdGenerationStrategy);
+                            return new TypedMessageSerializationStrategy(
+                                useCorrelationIds,
+                                typeNameSerializer,
+                                serializer,
+                                correlationIdGenerationStrategy);
+                        }
+                        case MessageSerializationStrategy.Header:
+                        {
+                            return new HeaderMessageSerializationStrategy(
+                                useCorrelationIds,
+                                headerTypeSerializationConfiguration,
+                                serializer,
+                                correlationIdGenerationStrategy);
+                        }
+                        case MessageSerializationStrategy.UnTyped:
+                        default:
+                            return new UntypedMessageSerializationStrategy(
+                                useCorrelationIds, serializer, correlationIdGenerationStrategy);
                     }
-
-                    return new UntypedMessageSerializationStrategy(
-                        useCorrelationIds, serializer, correlationIdGenerationStrategy);
                 });
             }).Advanced);
 
