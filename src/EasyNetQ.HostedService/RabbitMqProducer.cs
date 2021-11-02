@@ -194,6 +194,7 @@ namespace EasyNetQ.HostedService
         }
 
         private void StartProducerLoop(CancellationToken cancellationToken) =>
+            // ReSharper disable once AsyncVoidLambda
             new Thread(async () =>
             {
                 while (true)
@@ -226,7 +227,7 @@ namespace EasyNetQ.HostedService
                             };
 
 #if LOG_DEBUG_RABBITMQ_PRODUCER_PUBLISHED_MESSAGES
-                            Logger?.LogDebug(
+                            Logger.LogDebug(
                                 $"Publishing message to exchange {message.Exchange} " +
                                 $"({GetMessageInformation(message)}) with routing key {message.RoutingKey} and payload " +
                                 $"{Encoding.UTF8.GetString(message.Payload)}.");
@@ -238,7 +239,7 @@ namespace EasyNetQ.HostedService
                                     message.Headers, cancellationToken);
                             }
 
-                            Bus.Publish(
+                            await Bus.PublishAsync(
                                 exchange,
                                 message.RoutingKey,
                                 message.Mandatory,
@@ -251,54 +252,51 @@ namespace EasyNetQ.HostedService
                             _messages.TryDequeue(out _);
                         }
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException exception)
                     {
-                        Logger?.LogDebug($"Stopping producer loop with configuration {RabbitMqConfig.Id}.");
+                        if (exception.CancellationToken == cancellationToken)
+                        {
+                            Logger?.LogDebug($"Stopping producer loop with configuration {RabbitMqConfig.Id}.");
 
-                        return;
+                            return;
+                        }
+
+                        var error =
+                            "Operation cancelled while waiting for message to be confirmed with configuration" +
+                            $"{RabbitMqConfig.Id} ({GetMessageInformation(message)})";
+
+                        FailAndDiscardMessage(message, new Exception(error, exception));
                     }
-                    catch (TimeoutException)
+                    catch (TimeoutException exception)
                     {
-                        Logger?.LogError(
-                            $"Timeout occured while trying to publish with configuration " +
-                            $"{RabbitMqConfig.Id} ({GetMessageInformation(message)})");
+                        var error =
+                            "Timeout occured while trying to publish with configuration " +
+                            $"{RabbitMqConfig.Id} ({GetMessageInformation(message)})";
 
-                        ProducerLoopWaitAndContinue(cancellationToken);
+                        FailAndDiscardMessage(message, new Exception(error, exception));
                     }
                     catch (AlreadyClosedException exception)
                     {
-                        Logger?.LogError(
+                        var error =
                             $"AMQP error in producer loop: {exception.Message}\n{exception.StackTrace}\n" +
-                            $"({GetMessageInformation(message)})");
+                            $"({GetMessageInformation(message)})";
 
-                        // 404 - NOT FOUND means that the message cannot be processed at all at this point and it's
-                        // best to notify the library's client and discard it
-                        if (exception.ShutdownReason?.ReplyCode == 404)
-                        {
-                            ProducerLoopDiscardMessageAndContinue(message);
-                        }
+                        FailAndDiscardMessage(message, new Exception(error, exception));
                     }
                     catch (Exception exception)
                     {
-                        Logger?.LogCritical(
+                        var error =
                             $"Critical error in producer loop: {exception.Message}\n{exception.StackTrace}\n" +
-                            $"({GetMessageInformation(message)})");
+                            $"({GetMessageInformation(message)})";
 
-                        ProducerLoopWaitAndContinue(cancellationToken);
+                        FailAndDiscardMessage(message, new Exception(error, exception));
                     }
                 }
             }).Start();
 
-        private void ProducerLoopWaitAndContinue(CancellationToken cancellationToken)
+        private void FailAndDiscardMessage(Message message, Exception exception)
         {
-            Task.Delay(RabbitMqConfig.PublisherLoopErrorBackOffMilliseconds, cancellationToken).Wait(cancellationToken);
-
-            _messageSemaphore.Release();
-        }
-
-        private void ProducerLoopDiscardMessageAndContinue(Message message)
-        {
-            message?.TaskCompletionSource.SetResult(PublishResult.NotPublished);
+            message?.TaskCompletionSource.SetException(exception);
 
             _messages.TryDequeue(out _);
         }
