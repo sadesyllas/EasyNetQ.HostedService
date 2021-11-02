@@ -262,7 +262,7 @@ namespace EasyNetQ.HostedService
                             AdornActivityWithTags(message.TracingActivity, message.Exchange, message.RoutingKey,
                                 message.Mandatory, message.Headers);
 
-                            Bus.Publish(
+                            await Bus.PublishAsync(
                                 exchange,
                                 message.RoutingKey,
                                 message.Mandatory,
@@ -277,11 +277,14 @@ namespace EasyNetQ.HostedService
                             success = true;
                         }
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException e)
                     {
-                        Logger?.LogDebug($"Stopping producer loop with configuration {RabbitMqConfig.Id}.");
+                        if (e.CancellationToken == cancellationToken)
+                        {
+                            Logger?.LogDebug($"Stopping producer loop with configuration {RabbitMqConfig.Id}.");
 
-                        return;
+                            return;
+                        }
                     }
                     catch (TimeoutException exception)
                     {
