@@ -8,7 +8,7 @@ using EasyNetQ.HostedService.Tracing;
 
 namespace EasyNetQ.HostedService.Internals
 {
-    internal sealed class HandlerRegistrar : IHandlerRegistration
+    internal sealed class HandlerRegistrar<TConsumer> : IHandlerRegistration
     {
         private readonly IHandlerRegistration _handlers;
         private readonly IIncomingMessageInterceptor _incomingMessageInterceptor;
@@ -32,17 +32,29 @@ namespace EasyNetQ.HostedService.Internals
                     await _incomingMessageInterceptor.InterceptMessage(message, messageReceivedInfo, cancellationToken);
                 }
 
-                using (var activity = _activitySource.StartActivity(TraceActivityName.Consume, ActivityKind.Consumer))
+                var maybeTraceId = message?.Properties.Headers?["X-TRACE-ID"];
+                var traceId = maybeTraceId is string ? (string)maybeTraceId : null;
+
+                using (var activity =
+                    _activitySource.StartActivity($"{typeof(TConsumer).FullName} receive", ActivityKind.Consumer,
+                        // ReSharper disable once AssignNullToNotNullAttribute
+                        traceId))
                 {
                     if (activity != null)
                     {
                         activity
-                            .AddTag(TraceActivityTagName.Exchange, messageReceivedInfo.Exchange)
-                            .AddTag(TraceActivityTagName.RoutingKey, messageReceivedInfo.RoutingKey)
-                            .AddTag(TraceActivityTagName.CorrelationId, message.Properties.CorrelationId)
-                            .AddTag(TraceActivityTagName.DeliveryTag, messageReceivedInfo.DeliveryTag)
-                            .AddTag(TraceActivityTagName.Redelivered, messageReceivedInfo.Redelivered)
-                            .AddTag(TraceActivityTagName.Headers, message.Properties.Headers);
+                            .AddTag("messaging.system", "rabbitmq")
+                            .AddTag("messaging.operation", "receive")
+                            .AddTag("messaging.rabbitmq.routing_key", messageReceivedInfo.RoutingKey)
+                            .AddTag("x-messaging.rabbitmq.correlation_id", message?.Properties.CorrelationId)
+                            .AddTag("x-messaging.rabbitmq.delivery_tag", messageReceivedInfo.DeliveryTag)
+                            .AddTag("x-messaging.rabbitmq.redelivered", messageReceivedInfo.Redelivered)
+                            .AddTag("x-messaging.rabbitmq.headers", message?.Properties.Headers);
+
+                        if ((message?.Properties.Headers?.ContainsKey("X-MESSAGE-ID")).GetValueOrDefault())
+                        {
+                            activity.AddTag("messaging.message_id", message?.Properties.Headers?["X-MESSAGE-ID"]);
+                        }
                     }
 
                     try
@@ -57,7 +69,7 @@ namespace EasyNetQ.HostedService.Internals
                                 tags: new ActivityTagsCollection(
                                     new[]
                                     {
-                                        new KeyValuePair<string, object>(TraceActivityTagName.Exception, exception)
+                                        new KeyValuePair<string, object>("exception", exception)
                                     })));
                         }
 
