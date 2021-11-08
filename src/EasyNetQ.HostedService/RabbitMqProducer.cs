@@ -102,7 +102,9 @@ namespace EasyNetQ.HostedService
             bool mandatory = false,
             IDictionary<string, object> headers = null)
         {
-            var tracingActivity = ActivitySource.StartActivity(TraceActivityName.Publish, ActivityKind.Producer);
+            var tracingActivity =
+                // ReSharper disable once AssignNullToNotNullAttribute
+                ActivitySource.StartActivity($"{typeof(T).FullName} send", ActivityKind.Producer, Activity.Current?.Id);
 
             if (_cancellationToken.IsCancellationRequested)
             {
@@ -118,7 +120,7 @@ namespace EasyNetQ.HostedService
 
             if (exchange == null)
             {
-                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers);
+                AdornActivityWithTags(tracingActivity, null, routingKey, mandatory, headers, null);
 
                 DisposeActivityAndThrowException(tracingActivity,
                     new ArgumentException("The exchange must not be null."));
@@ -126,7 +128,7 @@ namespace EasyNetQ.HostedService
 
             if (routingKey == null)
             {
-                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers);
+                AdornActivityWithTags(tracingActivity, exchange, null, mandatory, headers, null);
 
                 DisposeActivityAndThrowException(tracingActivity,
                     new ArgumentException("The routing key must not be null."));
@@ -134,7 +136,7 @@ namespace EasyNetQ.HostedService
 
             if (payload == null)
             {
-                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers);
+                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers, null);
 
                 DisposeActivityAndThrowException(tracingActivity,
                     new ArgumentException("The payload must not be null."));
@@ -144,6 +146,13 @@ namespace EasyNetQ.HostedService
 
             var taskCompletionSource =
                 new TaskCompletionSource<PublishResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (tracingActivity != null)
+            {
+                headers = headers ?? new Dictionary<string, object>();
+
+                headers.Add("X-TRACE-ID", tracingActivity.Id);
+            }
 
             var message = new Message
             {
@@ -261,7 +270,7 @@ namespace EasyNetQ.HostedService
                             }
 
                             AdornActivityWithTags(message.TracingActivity, message.Exchange, message.RoutingKey,
-                                message.Mandatory, message.Headers);
+                                message.Mandatory, message.Headers, message.Payload);
 
                             await Bus.PublishAsync(
                                 exchange,
@@ -333,7 +342,7 @@ namespace EasyNetQ.HostedService
             {
                 message.TracingActivity.AddEvent(new ActivityEvent(TraceEventName.Exception,
                     tags: new ActivityTagsCollection(new[]
-                        {new KeyValuePair<string, object>(TraceActivityTagName.Exception, exception)})));
+                        { new KeyValuePair<string, object>("exception", exception) })));
 
                 message.TracingActivity.Dispose();
             }
@@ -370,18 +379,28 @@ namespace EasyNetQ.HostedService
         }
 
         private void AdornActivityWithTags(Activity activity, string exchange, string routingKey, bool mandatory,
-            IDictionary<string, object> headers)
+            IDictionary<string, object> headers, byte[] payload)
         {
             if (activity != null)
             {
                 activity
-                    .AddTag(TraceActivityTagName.Exchange, exchange)
-                    .AddTag(TraceActivityTagName.RoutingKey, routingKey)
-                    .AddTag(TraceActivityTagName.Mandatory, mandatory);
+                    .AddTag("messaging.system", "rabbitmq")
+                    .AddTag("messaging.operation", "send")
+                    .AddTag("messaging.destination", exchange)
+                    .AddTag("messaging.message_payload_size_bytes", payload?.Length)
+                    .AddTag("messaging.rabbitmq.routing_key", routingKey)
+                    // TODO: add configuration to allow including the payload
+                    // .AddTag("messaging.message_payload", Encoding.UTF8.GetString(payload))
+                    .AddTag("x-messaging.rabbitmq.mandatory", mandatory);
 
                 if (headers != null)
                 {
-                    activity.AddTag(TraceActivityTagName.Headers, headers);
+                    if (headers.ContainsKey("X-MESSAGE-ID"))
+                    {
+                        activity.AddTag("messaging.message_id", headers["X-MESSAGE-ID"]);
+                    }
+
+                    activity.AddTag("x-messaging.rabbitmq.headers", headers);
                 }
             }
         }
@@ -395,7 +414,7 @@ namespace EasyNetQ.HostedService
 
             activity.AddEvent(new ActivityEvent(TraceEventName.Exception,
                 tags: new ActivityTagsCollection(
-                    new[] {new KeyValuePair<string, object>(TraceActivityTagName.Exception, exception)})));
+                    new[] { new KeyValuePair<string, object>("exception", exception) })));
 
             activity.Dispose();
 

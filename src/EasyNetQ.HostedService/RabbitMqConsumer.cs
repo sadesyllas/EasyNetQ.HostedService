@@ -196,7 +196,8 @@ namespace EasyNetQ.HostedService
             {
                 try
                 {
-                    RegisterMessageHandlers(new HandlerRegistrar(handlers, IncomingMessageInterceptor, ActivitySource));
+                    RegisterMessageHandlers(new HandlerRegistrar<T>(handlers, IncomingMessageInterceptor,
+                        ActivitySource));
                 }
                 catch (Exception exception)
                 {
@@ -232,10 +233,10 @@ namespace EasyNetQ.HostedService
 
             if (internalConsumersField != null)
             {
-                var internalConsumers = (ConcurrentSet<IInternalConsumer>) internalConsumersField.GetValue(consumer);
+                var internalConsumers = (ConcurrentSet<IInternalConsumer>)internalConsumersField.GetValue(consumer);
                 // ReSharper disable once AssignNullToNotNullAttribute
                 // ReSharper disable once ConstantConditionalAccessQualifier
-                model = ((InternalConsumer) internalConsumers.FirstOrDefault())?.Model;
+                model = ((InternalConsumer)internalConsumers.FirstOrDefault())?.Model;
             }
 
             var internalConsumerField =
@@ -243,9 +244,9 @@ namespace EasyNetQ.HostedService
 
             if (internalConsumerField != null)
             {
-                var internalConsumer = (IInternalConsumer) internalConsumerField.GetValue(consumer);
+                var internalConsumer = (IInternalConsumer)internalConsumerField.GetValue(consumer);
                 // ReSharper disable once ConstantConditionalAccessQualifier
-                model = ((InternalConsumer) internalConsumer)?.Model;
+                model = ((InternalConsumer)internalConsumer)?.Model;
             }
 
             if (model == null)
