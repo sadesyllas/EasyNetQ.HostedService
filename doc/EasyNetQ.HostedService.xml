@@ -277,6 +277,21 @@
              <c>type</c> property.
              </summary>
         </member>
+        <member name="M:EasyNetQ.HostedService.Internals.UnhandledHeaderTypeException.#ctor">
+            <inheritdoc />
+        </member>
+        <member name="M:EasyNetQ.HostedService.Internals.UnhandledHeaderTypeException.#ctor(System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:EasyNetQ.HostedService.Internals.UnhandledHeaderTypeException.#ctor(System.String,System.Object[])">
+            <inheritdoc />
+        </member>
+        <member name="M:EasyNetQ.HostedService.Internals.UnhandledHeaderTypeException.#ctor(System.String,System.Exception)">
+            <inheritdoc />
+        </member>
+        <member name="M:EasyNetQ.HostedService.Internals.UnhandledHeaderTypeException.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+            <inheritdoc />
+        </member>
         <member name="T:EasyNetQ.HostedService.Internals.UnhandledMessageTypeException">
             <summary>
             Thrown when a consumer's <see cref="T:EasyNetQ.IMessage`1"/> default handler for <see cref="T:System.Object"/> is run, since
@@ -819,7 +834,7 @@
              producer as a singleton hosted service.
              </returns>
         </member>
-        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.CreateLazyBus(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,System.Boolean,System.Boolean,System.IServiceProvider)">
+        <member name="M:EasyNetQ.HostedService.RabbitMqService`1.CreateLazyBus(EasyNetQ.HostedService.Abstractions.IRabbitMqConfig,EasyNetQ.HostedService.Internals.MessageSerializationStrategy,System.Boolean,EasyNetQ.HostedService.Internals.HeaderTypeSerializationConfiguration,System.IServiceProvider)">
              <summary>
              This static method is used by <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/> to construct a singleton hosted
              service for a consumer of a producer.
@@ -834,7 +849,7 @@
              <see cref="T:EasyNetQ.HostedService.DependencyInjection.RabbitMqServiceBuilder`1"/>.
              </summary>
              <param name="rmqConfig"/>
-             <param name="useStronglyTypedMessages"/>
+             <param name="messageSerializationStrategy"/>
              <param name="useCorrelationIds"/>
              <param name="serviceProvider"/>
              <returns/>
