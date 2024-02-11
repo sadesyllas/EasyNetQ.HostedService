@@ -83,18 +83,21 @@ namespace EasyNetQ.HostedService.Models
         /// <inheritdoc/>
         /// </summary>
         /// <returns/>
-        public object Clone()
-        {
-            using (var memoryStream = new MemoryStream())
+        public object Clone() =>
+            new RabbitMqConfig
             {
-                var formatter = new BinaryFormatter();
-
-                formatter.Serialize(memoryStream, this);
-
-                memoryStream.Position = 0;
-
-                return formatter.Deserialize(memoryStream);   
-            }
-        }
+                Id = Id,
+                HostName = HostName,
+                MessageDeliveryTimeout = new TimeSpan(MessageDeliveryTimeout.Ticks),
+                Password = Password,
+                PersistentMessages = PersistentMessages,
+                Port = Port,
+                PublisherConfirms = PublisherConfirms,
+                PublisherLoopErrorBackOffMilliseconds = PublisherLoopErrorBackOffMilliseconds,
+                ReconnectionAttemptInterval = new TimeSpan(ReconnectionAttemptInterval.Ticks),
+                RequestedHeartbeat = new TimeSpan(RequestedHeartbeat.Ticks),
+                UserName = UserName,
+                VirtualHost = VirtualHost
+            };
     }
 }
