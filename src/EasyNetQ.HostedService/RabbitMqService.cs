@@ -7,11 +7,12 @@ using EasyNetQ.Consumer;
 using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
+using EasyNetQ.HostedService.Tracing;
 using EasyNetQ.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
+using DiagnosticListener = System.Diagnostics.DiagnosticListener;
 
 namespace EasyNetQ.HostedService
 {
@@ -21,8 +22,9 @@ namespace EasyNetQ.HostedService
     /// <param name="b"/>
     /// <param name="c"/>
     /// <param name="t"/>
-    /// <param name="logger"/>
-    public delegate void OnConnectedCallback(IAdvancedBus b, IRabbitMqConfig c, CancellationToken t, ILogger logger);
+    /// <param name="logWriter"/>
+    public delegate void OnConnectedCallback(IAdvancedBus b, IRabbitMqConfig c, CancellationToken t,
+        TraceLogWriter logWriter);
 
     /// <summary>
     /// A hosted service that accepts an EasyNetQ <see cref="IAdvancedBus"/> and uses it to either set up a consumer or
@@ -55,7 +57,6 @@ namespace EasyNetQ.HostedService
         private protected IOutgoingMessageInterceptor OutgoingMessageInterceptor;
         private bool _isProperlyInitialized;
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
-        private ILogger _logger;
 
         // ReSharper disable RedundantDefaultMemberInitializer
 
@@ -84,9 +85,15 @@ namespace EasyNetQ.HostedService
         protected IRabbitMqConfig RabbitMqConfig => _rmqConfig;
 
         /// <summary>
-        /// The initialized <see cref="ILogger{T}"/> that is exposed to subclasses of <see cref="RabbitMqService{T}"/>.
+        /// The initialized <see cref="ActivitySource"/> that is exposed to subclasses of <see cref="RabbitMqService{T}"/>.
         /// </summary>
-        protected ILogger Logger => _logger;
+        protected ActivitySource ActivitySource { get; } =
+            new ActivitySource(TraceSourceName<T>.Activity, typeof(T).Assembly.GetName().Version.ToString());
+
+        /// <summary>
+        /// The initialized <see cref="TraceLogWriter"/> that is exposed to subclasses of <see cref="RabbitMqService{T}"/>.
+        /// </summary>
+        protected TraceLogWriter Logger { get; } = new TraceLogWriter(new DiagnosticListener(TraceSourceName<T>.Log));
 
         /// <summary>
         /// This static method is used by <see cref="RabbitMqServiceBuilder{T}"/> to construct a singleton hosted service
@@ -154,7 +161,6 @@ namespace EasyNetQ.HostedService
             service._busProxy = busProxy;
             service._rmqConfig = rmqConfig;
             service._onConnected = onConnected;
-            service._logger = logger;
             service._isProperlyInitialized = true;
 
             service.Initialize();
@@ -244,29 +250,29 @@ namespace EasyNetQ.HostedService
                 $"This {nameof(RabbitMqService<T>)} instance should have been created through a call to " +
                 $"{nameof(RabbitMqService<T>)}.{nameof(Create)}.");
 
-            _logger?.LogInformation($"RabbitMqService {_rmqConfig.Id} is starting.");
+            Logger.LogInformation($"RabbitMqService {_rmqConfig.Id} is starting.");
 
             if (Bus.IsConnected)
             {
-                _logger?.LogDebug($"Connected to RabbitMQ with configuration {_rmqConfig.Id}.");
+                Logger.LogDebug($"Connected to RabbitMQ with configuration {_rmqConfig.Id}.");
             }
 
             Bus.Connected += (sender, args) =>
-                _logger?.LogDebug($"Connected to RabbitMQ with configuration {_rmqConfig.Id}.");
+                Logger.LogDebug($"Connected to RabbitMQ with configuration {_rmqConfig.Id}.");
 
             Bus.Disconnected += (sender, args) =>
-                _logger?.LogDebug($"Disconnected from RabbitMQ with configuration {_rmqConfig.Id}.");
+                Logger.LogDebug($"Disconnected from RabbitMQ with configuration {_rmqConfig.Id}.");
 
             // run the setup callbacks on connection
 
             if (Bus.IsConnected)
             {
                 _onConnected.ForEach(callback =>
-                    HandleCallbackError(callback)(Bus, _rmqConfig, cancellationToken, _logger));
+                    HandleCallbackError(callback)(Bus, _rmqConfig, cancellationToken, Logger));
             }
 
             _onConnected.ForEach(callback => Bus.Connected += (sender, args) =>
-                HandleCallbackError(callback)(Bus, _rmqConfig, cancellationToken, _logger));
+                HandleCallbackError(callback)(Bus, _rmqConfig, cancellationToken, Logger));
 
             if (_isConsumer)
             {
@@ -288,7 +294,7 @@ namespace EasyNetQ.HostedService
         /// <returns/>
         public virtual Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger?.LogInformation($"RabbitMqService {_rmqConfig.Id} is stopping.");
+            Logger.LogInformation($"RabbitMqService {_rmqConfig.Id} is stopping.");
 
             if (!cancellationToken.IsCancellationRequested)
             {
@@ -300,7 +306,7 @@ namespace EasyNetQ.HostedService
                 }
                 catch (Exception exception)
                 {
-                    _logger?.LogCritical(
+                    Logger.LogCritical(
                         $"Duplicate IDisposable disposal on {serviceTypeName} termination: " +
                         $"{exception.Message}\n" +
                         exception.StackTrace);
@@ -312,7 +318,7 @@ namespace EasyNetQ.HostedService
                 }
                 catch (Exception exception)
                 {
-                    _logger?.LogCritical(
+                    Logger.LogCritical(
                         $"Could not dispose {nameof(IAdvancedBus)} on {serviceTypeName} termination: " +
                         $"{exception.Message}\n" +
                         exception.StackTrace);
@@ -379,7 +385,7 @@ namespace EasyNetQ.HostedService
                 }
                 catch (Exception exception)
                 {
-                    _logger?.LogCritical($"Failed to run callback on connection:\n{exception}", exception);
+                    Logger.LogCritical($"Failed to run callback on connection:\n{exception}", exception);
                 }
             };
     }

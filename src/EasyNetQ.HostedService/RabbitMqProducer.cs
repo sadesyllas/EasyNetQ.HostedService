@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -8,8 +9,8 @@ using System.Threading.Tasks;
 using EasyNetQ.Consumer;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Models;
+using EasyNetQ.HostedService.Tracing;
 using EasyNetQ.Topology;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RabbitMQ.Client.Exceptions;
 
@@ -101,30 +102,57 @@ namespace EasyNetQ.HostedService
             bool mandatory = false,
             IDictionary<string, object> headers = null)
         {
+            var tracingActivity =
+                // ReSharper disable once AssignNullToNotNullAttribute
+                ActivitySource.StartActivity($"{typeof(T).FullName} send", ActivityKind.Producer, Activity.Current?.Id);
+
             if (_cancellationToken.IsCancellationRequested)
             {
+                if (tracingActivity != null)
+                {
+                    tracingActivity.AddEvent(new ActivityEvent(TraceEventName.Cancelled));
+
+                    tracingActivity.Dispose();
+                }
+
                 return Task.FromResult(PublishResult.NotPublished);
             }
 
             if (exchange == null)
             {
-                throw new ArgumentException("The exchange must not be null.");
+                AdornActivityWithTags(tracingActivity, null, routingKey, mandatory, headers, null);
+
+                DisposeActivityAndThrowException(tracingActivity,
+                    new ArgumentException("The exchange must not be null."));
             }
 
             if (routingKey == null)
             {
-                throw new ArgumentException("The routing key must not be null.");
+                AdornActivityWithTags(tracingActivity, exchange, null, mandatory, headers, null);
+
+                DisposeActivityAndThrowException(tracingActivity,
+                    new ArgumentException("The routing key must not be null."));
             }
 
             if (payload == null)
             {
-                throw new ArgumentException("The payload must not be null.");
+                AdornActivityWithTags(tracingActivity, exchange, routingKey, mandatory, headers, null);
+
+                DisposeActivityAndThrowException(tracingActivity,
+                    new ArgumentException("The payload must not be null."));
             }
 
             var payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
 
             var taskCompletionSource =
                 new TaskCompletionSource<PublishResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (tracingActivity != null)
+            {
+                headers = headers ?? new Dictionary<string, object>();
+
+                headers.Add("X-TRACE-ID", tracingActivity.Id);
+            }
 
             var message = new Message
             {
@@ -135,6 +163,7 @@ namespace EasyNetQ.HostedService
                 Type = typeof(TMessage),
                 Headers = headers,
                 TaskCompletionSource = taskCompletionSource,
+                TracingActivity = tracingActivity
             };
 
             EnqueueMessage(message);
@@ -200,6 +229,7 @@ namespace EasyNetQ.HostedService
                 while (true)
                 {
                     Message message = null;
+                    var success = false;
 
                     try
                     {
@@ -239,6 +269,9 @@ namespace EasyNetQ.HostedService
                                     message.Headers, cancellationToken);
                             }
 
+                            AdornActivityWithTags(message.TracingActivity, message.Exchange, message.RoutingKey,
+                                message.Mandatory, message.Headers, message.Payload);
+
                             await Bus.PublishAsync(
                                 exchange,
                                 message.RoutingKey,
@@ -250,6 +283,8 @@ namespace EasyNetQ.HostedService
                             message.TaskCompletionSource.SetResult(PublishResult.Published);
 
                             _messages.TryDequeue(out _);
+
+                            success = true;
                         }
                     }
                     catch (OperationCanceledException exception)
@@ -291,11 +326,27 @@ namespace EasyNetQ.HostedService
 
                         FailAndDiscardMessage(message, new Exception(error, exception));
                     }
+                    finally
+                    {
+                        if (success)
+                        {
+                            message.TracingActivity?.Dispose();
+                        }
+                    }
                 }
             }).Start();
 
         private void FailAndDiscardMessage(Message message, Exception exception)
         {
+            if (message?.TracingActivity != null)
+            {
+                message.TracingActivity.AddEvent(new ActivityEvent(TraceEventName.Exception,
+                    tags: new ActivityTagsCollection(new[]
+                        { new KeyValuePair<string, object>("exception", exception) })));
+
+                message.TracingActivity.Dispose();
+            }
+
             message?.TaskCompletionSource.SetException(exception);
 
             _messages.TryDequeue(out _);
@@ -319,11 +370,55 @@ namespace EasyNetQ.HostedService
             public IDictionary<string, object> Headers { get; set; } = null;
             public Type Type { get; set; } = null;
             public TaskCompletionSource<PublishResult> TaskCompletionSource { get; set; } = null;
+            public Activity TracingActivity { get; set; }
 
             // ReSharper restore RedundantDefaultMemberInitializer
 
             public override string ToString() =>
                 $"exchange: {Exchange}, routing key: {RoutingKey}, publisher confirms: mandatory: {Mandatory}";
+        }
+
+        private void AdornActivityWithTags(Activity activity, string exchange, string routingKey, bool mandatory,
+            IDictionary<string, object> headers, byte[] payload)
+        {
+            if (activity != null)
+            {
+                activity
+                    .AddTag("messaging.system", "rabbitmq")
+                    .AddTag("messaging.operation", "send")
+                    .AddTag("messaging.destination", exchange)
+                    .AddTag("messaging.message_payload_size_bytes", payload?.Length)
+                    .AddTag("messaging.rabbitmq.routing_key", routingKey)
+                    // TODO: add configuration to allow including the payload
+                    // .AddTag("messaging.message_payload", Encoding.UTF8.GetString(payload))
+                    .AddTag("x-messaging.rabbitmq.mandatory", mandatory);
+
+                if (headers != null)
+                {
+                    if (headers.ContainsKey("X-MESSAGE-ID"))
+                    {
+                        activity.AddTag("messaging.message_id", headers["X-MESSAGE-ID"]);
+                    }
+
+                    activity.AddTag("x-messaging.rabbitmq.headers", headers);
+                }
+            }
+        }
+
+        private void DisposeActivityAndThrowException(Activity activity, Exception exception)
+        {
+            if (activity == null)
+            {
+                throw exception;
+            }
+
+            activity.AddEvent(new ActivityEvent(TraceEventName.Exception,
+                tags: new ActivityTagsCollection(
+                    new[] { new KeyValuePair<string, object>("exception", exception) })));
+
+            activity.Dispose();
+
+            throw exception;
         }
     }
 
