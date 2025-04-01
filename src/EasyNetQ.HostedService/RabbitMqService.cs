@@ -4,14 +4,13 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using EasyNetQ.Consumer;
+using EasyNetQ.DI;
 using EasyNetQ.HostedService.Abstractions;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
-using EasyNetQ.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace EasyNetQ.HostedService
 {
@@ -64,12 +63,7 @@ namespace EasyNetQ.HostedService
         private List<OnConnectedCallback> _onConnected = null;
 
         // ReSharper restore RedundantDefaultMemberInitializer
-
-        static RabbitMqService()
-        {
-            // disable the default log provider of EasyNetQ since we have not (obvious) way to apply log filtering to it
-            LogProvider.IsDisabled = true;
-        }
+        
 
         /// <summary>
         /// The initialized <see cref="IAdvancedBus"/> that is exposed to subclasses of
@@ -207,9 +201,7 @@ namespace EasyNetQ.HostedService
             }, container =>
             {
                 container.Register(serviceProvider);
-
                 container.Register<IConsumerErrorStrategy, ConsumerErrorStrategy>();
-
                 container.Register<IMessageSerializationStrategy>(serviceResolver =>
                 {
                     var serializer = serviceResolver.Resolve<ISerializer>();

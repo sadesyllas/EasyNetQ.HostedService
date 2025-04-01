@@ -1,3 +1,5 @@
+using System;
+
 namespace EasyNetQ.HostedService.Internals
 {
     /// <summary>
@@ -40,8 +42,8 @@ namespace EasyNetQ.HostedService.Internals
 
             return new SerializedMessage(properties, bytes);
         }
-
-        public IMessage DeserializeMessage(MessageProperties properties, byte[] body)
+        
+        public IMessage DeserializeMessage(MessageProperties properties, in ReadOnlyMemory<byte> body)
         {
             var messageType = _typeNameSerializer.DeSerialize(properties.Type);
             var message = _serializer.BytesToMessage(messageType, body);

@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json.Linq;
 
 namespace EasyNetQ.HostedService.Internals
@@ -37,7 +38,7 @@ namespace EasyNetQ.HostedService.Internals
             return new SerializedMessage(properties, bytes);
         }
 
-        public IMessage DeserializeMessage(MessageProperties properties, byte[] body)
+        public IMessage DeserializeMessage(MessageProperties properties, in ReadOnlyMemory<byte> body)
         {
             string message;
             switch (_serializer.BytesToMessage(typeof(object), body))
