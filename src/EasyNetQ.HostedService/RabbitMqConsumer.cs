@@ -1,19 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using EasyNetQ.Consumer;
 using EasyNetQ.Events;
 using EasyNetQ.HostedService.DependencyInjection;
 using EasyNetQ.HostedService.Internals;
 using EasyNetQ.HostedService.Models;
-using EasyNetQ.Internals;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using RabbitMQ.Client;
 
 namespace EasyNetQ.HostedService
 {
@@ -132,10 +127,10 @@ namespace EasyNetQ.HostedService
         /// <remarks>
         /// This method can be overriden by classes derived from <see cref="RabbitMqConsumer{T}"/>.
         /// </remarks>
-        protected virtual void OnStartConsumingEvent(StartConsumingSucceededEvent @event) =>
-            Logger?.LogDebug(
-                $"Started consuming from {@event.Queue.Name} with args: " +
-                $"{JsonConvert.SerializeObject(@event.Queue.Arguments)}.");
+        protected virtual void OnStartConsumingEvent(in StartConsumingSucceededEvent @event) =>
+            Logger?.LogDebug("Started consuming from {queueName} with args: {queueArgs}.",
+                @event.Queue.Name,
+                JsonConvert.SerializeObject(@event.Queue.Arguments));
 
         /// <summary>
         /// Registers an event handler for the <see cref="StartConsumingFailedEvent"/> event.
@@ -144,13 +139,11 @@ namespace EasyNetQ.HostedService
         /// <remarks>
         /// This method can be overriden by classes derived from <see cref="RabbitMqConsumer{T}"/>.
         /// </remarks>
-        protected virtual void OnStartConsumingEvent(StartConsumingFailedEvent @event)
+        protected virtual void OnStartConsumingEvent(in StartConsumingFailedEvent @event)
         {
-            var model = ExtractModelFromInternalConsumer(@event.Consumer, Logger);
-
-            Logger?.LogCritical(
-                $"Failed to consume from {@event.Queue.Name} ({@event.Queue.Arguments}) with " +
-                $"code {model?.CloseReason.ReplyCode} and reason {model?.CloseReason.ReplyText}.");
+            Logger?.LogCritical("Failed to consume from {queueName} ({queueArguments})",
+                @event.Queue.Name,
+                JsonConvert.SerializeObject(@event.Queue.Arguments));
         }
 
         /// <summary>
@@ -186,7 +179,7 @@ namespace EasyNetQ.HostedService
             };
         }
 
-        private void SubscribeToStartConsumingEvent<TEvent>(Action<TEvent> eventHandler)
+        private void SubscribeToStartConsumingEvent<TEvent>(TEventHandler<TEvent> eventHandler) where TEvent : struct
         {
             var eventBus = Bus.Container.Resolve<IEventBus>();
 
@@ -206,9 +199,7 @@ namespace EasyNetQ.HostedService
             var consumerConfig = GetConsumerConfig(cancellationToken);
 
             Debug.Assert(consumerConfig != null, $"{nameof(ConsumerConfig)} must not be null.");
-
-            Debug.Assert(consumerConfig.Queue != null, $"{nameof(ConsumerConfig.Queue)} must not be null.");
-
+            
             return Bus.Consume(consumerConfig.Queue, handlers =>
             {
                 try
@@ -237,43 +228,6 @@ namespace EasyNetQ.HostedService
                 }
             });
         }
-
-        // TODO: THIS USE OF REFLECTION IS FRAGILE AND MUST BE RECONSIDERED
-        private static IModel ExtractModelFromInternalConsumer(IConsumer consumer, ILogger logger)
-        {
-            IModel model = null;
-            var consumerType = consumer.GetType();
-
-            var internalConsumersField =
-                consumerType.GetField("internalConsumers", BindingFlags.Instance | BindingFlags.NonPublic);
-
-            if (internalConsumersField != null)
-            {
-                var internalConsumers = (ConcurrentSet<IInternalConsumer>) internalConsumersField.GetValue(consumer);
-                // ReSharper disable once AssignNullToNotNullAttribute
-                // ReSharper disable once ConstantConditionalAccessQualifier
-                model = ((InternalConsumer) internalConsumers.FirstOrDefault())?.Model;
-            }
-
-            var internalConsumerField =
-                consumerType.GetField("internalConsumer", BindingFlags.Instance | BindingFlags.NonPublic);
-
-            if (internalConsumerField != null)
-            {
-                var internalConsumer = (IInternalConsumer) internalConsumerField.GetValue(consumer);
-                // ReSharper disable once ConstantConditionalAccessQualifier
-                model = ((InternalConsumer) internalConsumer)?.Model;
-            }
-
-            if (model == null)
-            {
-                logger?.LogCritical(
-                    $"Could not extract a non null {nameof(IModel)} " +
-                    $"from the provided {nameof(IConsumer)}.");
-            }
-
-            return model;
-        }
     }
 
     #region Producer Implementation
@@ -292,4 +246,5 @@ namespace EasyNetQ.HostedService
     }
 
     #endregion Producer Implementation
+
 }

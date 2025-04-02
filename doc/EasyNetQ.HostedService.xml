@@ -327,7 +327,7 @@
         </member>
         <member name="P:EasyNetQ.HostedService.Models.ConsumerConfig.Queue">
             <summary>
-            The <see cref="T:EasyNetQ.Topology.IQueue"/> object needed by a class derived from <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/>, which
+            The <see cref="!:IQueue"/> object needed by a class derived from <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/>, which
             represents the queue that the consumer is to consumer from.
             </summary>
         </member>
@@ -576,7 +576,7 @@
             <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.OnStartConsumingEvent(EasyNetQ.Events.StartConsumingSucceededEvent)">
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.OnStartConsumingEvent(EasyNetQ.Events.StartConsumingSucceededEvent@)">
             <summary>
             Registers an event handler for the <see cref="T:EasyNetQ.Events.StartConsumingSucceededEvent"/> event.
             </summary>
@@ -585,7 +585,7 @@
             This method can be overriden by classes derived from <see cref="T:EasyNetQ.HostedService.RabbitMqConsumer`1"/>.
             </remarks>
         </member>
-        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.OnStartConsumingEvent(EasyNetQ.Events.StartConsumingFailedEvent)">
+        <member name="M:EasyNetQ.HostedService.RabbitMqConsumer`1.OnStartConsumingEvent(EasyNetQ.Events.StartConsumingFailedEvent@)">
             <summary>
             Registers an event handler for the <see cref="T:EasyNetQ.Events.StartConsumingFailedEvent"/> event.
             </summary>

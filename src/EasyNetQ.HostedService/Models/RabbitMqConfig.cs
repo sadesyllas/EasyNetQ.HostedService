@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using EasyNetQ.HostedService.Abstractions;
 
 namespace EasyNetQ.HostedService.Models

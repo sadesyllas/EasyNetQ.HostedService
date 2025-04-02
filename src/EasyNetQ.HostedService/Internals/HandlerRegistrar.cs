@@ -31,7 +31,6 @@ namespace EasyNetQ.HostedService.Internals
 
         public bool ThrowOnNoMatchingHandler
         {
-            get => _handlers.ThrowOnNoMatchingHandler;
             set => _handlers.ThrowOnNoMatchingHandler = value;
         }
     }

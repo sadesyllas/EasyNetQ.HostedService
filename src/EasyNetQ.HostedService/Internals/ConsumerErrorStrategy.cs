@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EasyNetQ.Consumer;
 using EasyNetQ.HostedService.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,26 +9,21 @@ using Microsoft.Extensions.Logging;
 namespace EasyNetQ.HostedService.Internals
 {
     // ReSharper disable once ClassNeverInstantiated.Global
-    internal sealed class ConsumerErrorStrategy : DefaultConsumerErrorStrategy
+    internal sealed class ConsumerErrorStrategy : IConsumerErrorStrategy
     {
         private readonly ILogger<ConsumerErrorStrategy> _logger;
         private bool _disposed;
         private bool _disposing;
 
-        public ConsumerErrorStrategy(
-            IPersistentConnection connection,
-            ISerializer serializer,
-            IConventions conventions,
-            ITypeNameSerializer typeNameSerializer,
-            IErrorMessageSerializer errorMessageSerializer,
-            ConnectionConfiguration connectionConfiguration,
-            IServiceProvider serviceProvider) : base(
-            connection, serializer, conventions, typeNameSerializer, errorMessageSerializer, connectionConfiguration)
+        public ConsumerErrorStrategy(IServiceProvider serviceProvider)
         {
             _logger = serviceProvider.GetService<ILogger<ConsumerErrorStrategy>>();
         }
 
-        public override AckStrategy HandleConsumerError(ConsumerExecutionContext context, Exception exception)
+        public Task<AckStrategy> HandleConsumerErrorAsync(
+            ConsumerExecutionContext context, 
+            Exception exception,
+            CancellationToken cancellationToken)
         {
             string message;
 
@@ -46,11 +43,11 @@ namespace EasyNetQ.HostedService.Internals
                 switch (consumerException.InnerException)
                 {
                     case OperationCanceledException _:
-                        return AckStrategies.NackWithRequeue;
+                        return Task.FromResult(AckStrategies.NackWithRequeue);
                     case UnhandledMessageTypeException _:
                         _logger?.LogError($"Unhandled message type: {context.Properties.Type}");
 
-                        return AckStrategies.NackWithoutRequeue;
+                        return Task.FromResult(AckStrategies.NackWithoutRequeue);
                     default:
                         var innerException = consumerException.InnerException;
                         var innerInnerException = consumerException.InnerException?.InnerException;
@@ -65,11 +62,11 @@ namespace EasyNetQ.HostedService.Internals
                         switch (consumerException.InnerException)
                         {
                             case IAckException _:
-                                return AckStrategies.Ack;
+                                return Task.FromResult(AckStrategies.Ack);
                             case INackWithRequeueException _:
-                                return AckStrategies.NackWithRequeue;
+                                return Task.FromResult(AckStrategies.NackWithRequeue);
                             default:
-                                return AckStrategies.NackWithoutRequeue;
+                                return Task.FromResult(AckStrategies.NackWithoutRequeue);
                         }
                 }
             }
@@ -79,13 +76,18 @@ namespace EasyNetQ.HostedService.Internals
 
             _logger?.LogError(message, context.ReceivedInfo);
 
-            return AckStrategies.NackWithRequeue;
+            return Task.FromResult(AckStrategies.NackWithRequeue);
         }
 
-        public override void Dispose()
+        public Task<AckStrategy> HandleConsumerCancelledAsync(
+            ConsumerExecutionContext context,
+            CancellationToken cancellationToken)
         {
-            base.Dispose();
+            return Task.FromResult(AckStrategies.NackWithRequeue);
+        }
 
+        public void Dispose()
+        {
             if (_disposed)
             {
                 return;
